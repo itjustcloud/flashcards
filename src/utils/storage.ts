@@ -2,9 +2,38 @@ import type { AppState, Card, Deck, ImportPayload, ThemeMode } from '../types';
 
 export const APP_STORAGE_KEY = 'flashcards.app.v1';
 
+const sampleDeck: Deck = {
+  id: 'sample-deck-basic-20',
+  name: '샘플 단어 20개',
+  createdAt: '2026-04-11T00:00:00.000Z',
+  updatedAt: '2026-04-11T00:00:00.000Z',
+  cards: [
+    { id: 'w-01', front: 'apple', back: '사과' },
+    { id: 'w-02', front: 'book', back: '책' },
+    { id: 'w-03', front: 'chair', back: '의자' },
+    { id: 'w-04', front: 'door', back: '문' },
+    { id: 'w-05', front: 'earth', back: '지구' },
+    { id: 'w-06', front: 'friend', back: '친구' },
+    { id: 'w-07', front: 'green', back: '초록색' },
+    { id: 'w-08', front: 'happy', back: '행복한' },
+    { id: 'w-09', front: 'island', back: '섬' },
+    { id: 'w-10', front: 'journey', back: '여행' },
+    { id: 'w-11', front: 'kitchen', back: '부엌' },
+    { id: 'w-12', front: 'laugh', back: '웃다' },
+    { id: 'w-13', front: 'mountain', back: '산' },
+    { id: 'w-14', front: 'night', back: '밤' },
+    { id: 'w-15', front: 'ocean', back: '바다' },
+    { id: 'w-16', front: 'pencil', back: '연필' },
+    { id: 'w-17', front: 'quiet', back: '조용한' },
+    { id: 'w-18', front: 'river', back: '강' },
+    { id: 'w-19', front: 'sunshine', back: '햇빛' },
+    { id: 'w-20', front: 'window', back: '창문' }
+  ]
+};
+
 const defaultState: AppState = {
-  decks: [],
-  selectedDeckId: null,
+  decks: [sampleDeck],
+  selectedDeckId: sampleDeck.id,
   theme: 'system'
 };
 
@@ -54,6 +83,10 @@ export function loadAppState(): AppState {
         ? parsed.selectedDeckId
         : decks[0]?.id ?? null;
     const theme = isTheme(parsed.theme) ? parsed.theme : 'system';
+
+    if (decks.length === 0) {
+      return defaultState;
+    }
 
     return { decks, selectedDeckId, theme };
   } catch {
