@@ -16,6 +16,10 @@ function nowIso(): string {
   return new Date().toISOString();
 }
 
+function supportsNativeFullscreen(): boolean {
+  return typeof document !== 'undefined' && document.fullscreenEnabled;
+}
+
 export default function App() {
   const [state, setState] = useState(loadAppState);
   const [languageMode, setLanguageMode] = useState<LanguageMode>('front-to-back');
@@ -31,6 +35,7 @@ export default function App() {
   const [importMode, setImportMode] = useState<'merge' | 'overwrite'>('merge');
   const [statusMessage, setStatusMessage] = useState('');
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isFocusMode, setIsFocusMode] = useState(false);
   const slideRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -49,11 +54,24 @@ export default function App() {
 
   useEffect(() => {
     const onFullscreenChange = () => {
-      setIsFullscreen(Boolean(document.fullscreenElement));
+      const active = Boolean(document.fullscreenElement);
+      setIsFullscreen(active);
+      if (!active) return;
+      setIsFocusMode(false);
     };
     document.addEventListener('fullscreenchange', onFullscreenChange);
     return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
   }, []);
+
+  useEffect(() => {
+    const className = 'app-scroll-lock';
+    if (isFocusMode) {
+      document.body.classList.add(className);
+    } else {
+      document.body.classList.remove(className);
+    }
+    return () => document.body.classList.remove(className);
+  }, [isFocusMode]);
 
   const selectedDeck = useMemo(
     () => state.decks.find((deck) => deck.id === state.selectedDeckId) ?? null,
@@ -94,7 +112,9 @@ export default function App() {
         event.preventDefault();
         setShowAnswer((current) => !current);
       } else if (event.key.toLowerCase() === 'f') {
-        void toggleFullscreen();
+        void togglePresentationMode();
+      } else if (event.key === 'Escape' && isFocusMode) {
+        setIsFocusMode(false);
       }
     };
 
@@ -248,15 +268,31 @@ export default function App() {
     setShowAnswer(false);
   };
 
-  async function toggleFullscreen() {
-    if (!slideRef.current) return;
+  async function togglePresentationMode() {
+    if (isFocusMode) {
+      setIsFocusMode(false);
+      return;
+    }
 
     if (document.fullscreenElement) {
       await document.exitFullscreen();
       return;
     }
 
-    await slideRef.current.requestFullscreen();
+    if (!slideRef.current || queue.length === 0) return;
+
+    if (supportsNativeFullscreen()) {
+      try {
+        await slideRef.current.requestFullscreen();
+        return;
+      } catch {
+        setIsFocusMode(true);
+        setStatusMessage('브라우저 제한으로 포커스 모드로 전환했습니다.');
+        return;
+      }
+    }
+
+    setIsFocusMode(true);
   }
 
   const questionText =
@@ -264,16 +300,36 @@ export default function App() {
   const answerText =
     activeCard && languageMode === 'front-to-back' ? activeCard.back : activeCard?.front ?? '';
 
-  return (
-    <main className="app">
-      <h1>Flashcards Web App</h1>
+  const mainText =
+    displayMode === 'flip' ? (showAnswer ? answerText : questionText) : questionText;
+  const secondaryText = displayMode === 'front-only' && showAnswer ? answerText : '';
 
-      <section className="panel hero-panel">
-        <h2>슬라이드쇼</h2>
-        <div className="row wrap">
+  return (
+    <main className={`app${isFocusMode ? ' focus-mode' : ''}`}>
+      <h1 className="app-title">Flashcards Web App</h1>
+
+      <section className="panel hero-panel" ref={slideRef} aria-label="슬라이드쇼 영역">
+        <div className="slideshow-header">
+          <h2>슬라이드쇼</h2>
+          {(isFocusMode || isFullscreen) && (
+            <button
+              type="button"
+              className="focus-exit"
+              onClick={() => {
+                void togglePresentationMode();
+              }}
+              aria-label="포커스 모드 또는 전체화면 종료"
+            >
+              종료
+            </button>
+          )}
+        </div>
+
+        <div className="row wrap deck-row">
           <label>
             빠른 덱 선택
             <select
+              aria-label="슬라이드쇼 덱 선택"
               value={state.selectedDeckId ?? ''}
               onChange={(event) =>
                 setState((current) => ({ ...current, selectedDeckId: event.target.value || null }))
@@ -287,51 +343,61 @@ export default function App() {
               ))}
             </select>
           </label>
-        </div>
-
-        <div className="row wrap badges">
           <span className="badge">진행: {progressLabel(queueIndex, queue.length)}</span>
-          <span className="badge">언어: {languageMode === 'front-to-back' ? '앞 → 뒤' : '뒤 → 앞'}</span>
-          <span className="badge">표시: {displayMode === 'front-only' ? '앞면 + 정답' : '플립'}</span>
-          <span className="badge">순서: {orderMode === 'sequential' ? '정순' : '역순'}</span>
-          <span className="badge">셔플: {shuffleMode ? '켜짐' : '꺼짐'}</span>
-          <span className="badge">자동재생: {autoplay ? '켜짐' : '꺼짐'}</span>
         </div>
 
-        <div className="controls-grid">
-          <div className="control-group">
-            <h3>탐색</h3>
-            <div className="row wrap">
-              <button onClick={prevCard} disabled={queue.length === 0}>
-                이전
-              </button>
-              <button onClick={nextCard} disabled={queue.length === 0}>
-                다음
-              </button>
-              <button onClick={() => setShowAnswer((current) => !current)} disabled={queue.length === 0}>
-                뒤집기/정답
-              </button>
-            </div>
-          </div>
+        <div className="slide-stage" aria-live="polite">
+          {!activeCard && <p className="empty-slide">카드를 추가하면 슬라이드가 시작됩니다.</p>}
+          {activeCard && (
+            <>
+              <p className="slide-main">{mainText}</p>
+              {secondaryText && <p className="slide-sub">{secondaryText}</p>}
+            </>
+          )}
+        </div>
 
-          <div className="control-group">
-            <h3>재생</h3>
-            <div className="row wrap">
-              <button onClick={() => setAutoplay((current) => !current)} disabled={queue.length === 0}>
-                {autoplay ? '자동재생 정지' : `자동재생 ${AUTOPLAY_MS / 1000}초`}
-              </button>
-              <button onClick={() => void toggleFullscreen()} disabled={queue.length === 0}>
-                {isFullscreen ? '전체화면 종료' : '전체화면'}
-              </button>
-            </div>
-          </div>
+        <div className="thumb-controls" role="group" aria-label="슬라이드 기본 조작">
+          <button onClick={prevCard} disabled={queue.length === 0} aria-label="이전 카드">
+            이전
+          </button>
+          <button
+            onClick={() => setShowAnswer((current) => !current)}
+            disabled={queue.length === 0}
+            aria-label="카드 뒤집기 또는 정답 보기"
+          >
+            뒤집기
+          </button>
+          <button onClick={nextCard} disabled={queue.length === 0} aria-label="다음 카드">
+            다음
+          </button>
+        </div>
 
-          <div className="control-group">
-            <h3>표시/순서</h3>
+        <div className="utility-controls" role="group" aria-label="슬라이드 보조 조작">
+          <button onClick={() => setAutoplay((current) => !current)} disabled={queue.length === 0}>
+            {autoplay ? '자동재생 정지' : `자동재생 ${AUTOPLAY_MS / 1000}초`}
+          </button>
+          <button onClick={() => void togglePresentationMode()} disabled={queue.length === 0}>
+            {isFullscreen || isFocusMode ? '포커스/전체화면 종료' : '포커스/전체화면'}
+          </button>
+        </div>
+
+        <p className="shortcut-help">⌨ ←/→ 이동 · Space 뒤집기 · F 포커스/전체화면 · Esc 종료</p>
+
+        <details className="panel slideshow-settings">
+          <summary>슬라이드 세부 설정</summary>
+          <div className="panel-body">
+            <div className="row wrap badges">
+              <span className="badge">언어: {languageMode === 'front-to-back' ? '앞 → 뒤' : '뒤 → 앞'}</span>
+              <span className="badge">표시: {displayMode === 'front-only' ? '앞면 + 정답' : '플립'}</span>
+              <span className="badge">순서: {orderMode === 'sequential' ? '정순' : '역순'}</span>
+              <span className="badge">셔플: {shuffleMode ? '켜짐' : '꺼짐'}</span>
+              <span className="badge">자동재생: {autoplay ? '켜짐' : '꺼짐'}</span>
+            </div>
             <div className="row wrap">
               <label>
                 언어 방향
                 <select
+                  aria-label="언어 방향"
                   value={languageMode}
                   onChange={(event) => setLanguageMode(event.target.value as LanguageMode)}
                 >
@@ -342,6 +408,7 @@ export default function App() {
               <label>
                 표시 방식
                 <select
+                  aria-label="표시 방식"
                   value={displayMode}
                   onChange={(event) => setDisplayMode(event.target.value as DisplayMode)}
                 >
@@ -352,6 +419,7 @@ export default function App() {
               <label>
                 카드 순서
                 <select
+                  aria-label="카드 순서"
                   value={orderMode}
                   onChange={(event) => setOrderMode(event.target.value as OrderMode)}
                 >
@@ -361,6 +429,7 @@ export default function App() {
               </label>
               <label>
                 <input
+                  aria-label="셔플 모드"
                   type="checkbox"
                   checked={shuffleMode}
                   onChange={(event) => setShuffleMode(event.target.checked)}
@@ -369,24 +438,7 @@ export default function App() {
               </label>
             </div>
           </div>
-        </div>
-
-        <div className="slide" ref={slideRef}>
-          {!activeCard && <p>카드를 추가하면 슬라이드가 시작됩니다.</p>}
-          {activeCard && (
-            <>
-              {displayMode === 'front-only' && (
-                <>
-                  <h3>{questionText}</h3>
-                  {showAnswer && <p>{answerText}</p>}
-                </>
-              )}
-
-              {displayMode === 'flip' && <h3>{showAnswer ? answerText : questionText}</h3>}
-              <p className="help">키보드: ← → 이동, Space 뒤집기, F 전체화면</p>
-            </>
-          )}
-        </div>
+        </details>
       </section>
 
       <section className="advanced-panels">
@@ -406,6 +458,7 @@ export default function App() {
 
             <div className="row wrap">
               <select
+                aria-label="관리용 덱 선택"
                 value={state.selectedDeckId ?? ''}
                 onChange={(event) =>
                   setState((current) => ({ ...current, selectedDeckId: event.target.value || null }))
@@ -425,7 +478,11 @@ export default function App() {
 
             {selectedDeck && (
               <div className="row wrap">
-                <input value={selectedDeck.name} onChange={(event) => renameDeck(event.target.value)} />
+                <input
+                  aria-label="선택된 덱 이름"
+                  value={selectedDeck.name}
+                  onChange={(event) => renameDeck(event.target.value)}
+                />
               </div>
             )}
           </div>
@@ -457,14 +514,18 @@ export default function App() {
                 {selectedDeck.cards.map((card) => (
                   <div key={card.id} className="card-edit-row">
                     <input
+                      aria-label="카드 앞면"
                       value={card.front}
                       onChange={(event) => updateCard(card.id, 'front', event.target.value)}
                     />
                     <input
+                      aria-label="카드 뒷면"
                       value={card.back}
                       onChange={(event) => updateCard(card.id, 'back', event.target.value)}
                     />
-                    <button onClick={() => deleteCard(card.id)}>삭제</button>
+                    <button onClick={() => deleteCard(card.id)} aria-label="카드 삭제">
+                      삭제
+                    </button>
                   </div>
                 ))}
               </div>
