@@ -664,13 +664,37 @@ export default function App() {
 
       {activeTab === 'manage' && (
         <section className="manage-screen" aria-label="고급 관리">
+          <section className="panel deck-shelf-panel" aria-label="덱 선택">
+            <div className="manage-summary-head">
+              <div>
+                <p className="manage-summary-label">Step 1</p>
+                <h2>먼저 덱을 선택하세요</h2>
+              </div>
+              <span className="badge">{state.decks.length}개 덱</span>
+            </div>
+            <div className="deck-shelf" role="listbox" aria-label="덱 카드 선택">
+              {state.decks.map((deck) => (
+                <button
+                  key={deck.id}
+                  type="button"
+                  className={`deck-poster${deck.id === state.selectedDeckId ? ' active' : ''}`}
+                  onClick={() => setSelectedDeck(deck.id)}
+                  aria-selected={deck.id === state.selectedDeckId}
+                >
+                  <strong>{deck.name}</strong>
+                  <span>{deck.cards.length}단어</span>
+                </button>
+              ))}
+            </div>
+          </section>
+
           <section className="panel manage-summary-panel" aria-label="선택된 덱 요약">
             <div className="manage-summary-head">
               <div>
                 <p className="manage-summary-label">현재 선택된 덱</p>
                 <h2>{selectedDeck?.name ?? '덱을 선택해 주세요'}</h2>
               </div>
-              <span className="badge">{selectedDeck ? `${selectedDeck.cards.length}개 카드` : '덱 없음'}</span>
+              <span className="badge">{selectedDeck ? `${selectedDeck.cards.length}단어` : '덱 없음'}</span>
             </div>
             <div className="manage-summary-stats">
               <div className="stat-tile">
@@ -740,38 +764,39 @@ export default function App() {
           <section className="panel advanced-panel">
             <h2>카드 관리</h2>
             <div className="panel-body">
-              <div className="row quick-add-row">
-                <input
-                  ref={frontInputRef}
-                  placeholder="앞면"
-                  value={cardFrontInput}
-                  onChange={(event) => setCardFrontInput(event.target.value)}
-                  onKeyDown={handleFrontInputKeyDown}
-                  disabled={!selectedDeck}
-                />
-                <input
-                  ref={backInputRef}
-                  placeholder="뒷면"
-                  value={cardBackInput}
-                  onChange={(event) => setCardBackInput(event.target.value)}
-                  onKeyDown={handleBackInputKeyDown}
-                  disabled={!selectedDeck}
-                />
-                <button onClick={handleAddCardClick} disabled={!selectedDeck}>
-                  카드 추가
-                </button>
-                <button
-                  type="button"
-                  onClick={clearCardInputs}
-                  disabled={!selectedDeck || (!cardFrontInput && !cardBackInput)}
-                >
-                  입력 지우기
-                </button>
-              </div>
-              <p className="helper-text">Enter로 빠르게 이동/추가할 수 있습니다. 추가 후 앞면 입력칸에 자동 포커스됩니다.</p>
+              {!selectedDeck && (
+                <p className="empty-state">Step 1에서 덱을 먼저 고르면 카드 입력을 시작할 수 있어요.</p>
+              )}
 
               {selectedDeck && (
                 <>
+                  <p className="group-label">Step 2 · 선택된 덱에 카드 추가</p>
+                  <div className="row quick-add-row">
+                    <input
+                      ref={frontInputRef}
+                      placeholder="앞면"
+                      value={cardFrontInput}
+                      onChange={(event) => setCardFrontInput(event.target.value)}
+                      onKeyDown={handleFrontInputKeyDown}
+                    />
+                    <input
+                      ref={backInputRef}
+                      placeholder="뒷면"
+                      value={cardBackInput}
+                      onChange={(event) => setCardBackInput(event.target.value)}
+                      onKeyDown={handleBackInputKeyDown}
+                    />
+                    <button onClick={handleAddCardClick}>카드 추가</button>
+                    <button
+                      type="button"
+                      onClick={clearCardInputs}
+                      disabled={!cardFrontInput && !cardBackInput}
+                    >
+                      입력 지우기
+                    </button>
+                  </div>
+                  <p className="helper-text">Enter로 빠르게 이동/추가할 수 있습니다. 추가 후 앞면 입력칸에 자동 포커스됩니다.</p>
+
                   <div className="cards-toolbar">
                     <input
                       aria-label="카드 검색"
@@ -825,7 +850,6 @@ export default function App() {
                   </div>
                 </>
               )}
-              {!selectedDeck && <p className="empty-state">카드를 관리하려면 먼저 덱을 선택하세요.</p>}
             </div>
           </section>
 

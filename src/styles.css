@@ -483,6 +483,7 @@ button:active:not(:disabled) {
   margin-top: 12px;
 }
 
+.deck-shelf-panel,
 .manage-summary-panel {
   border-width: 2px;
   border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
@@ -491,6 +492,43 @@ button:active:not(:disabled) {
     color-mix(in srgb, var(--surface) 92%, var(--accent)),
     color-mix(in srgb, var(--surface) 98%, var(--accent))
   );
+}
+
+.deck-shelf {
+  margin-top: 10px;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(150px, 1fr);
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.deck-poster {
+  min-height: 92px;
+  border-radius: 12px;
+  padding: 12px;
+  text-align: left;
+  display: grid;
+  gap: 6px;
+  align-content: space-between;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border));
+  background: linear-gradient(155deg, #1a294a, #2a4b88 68%, #4c7bd1);
+  color: #f4f8ff;
+}
+
+.deck-poster strong {
+  font-size: 0.98rem;
+}
+
+.deck-poster span {
+  font-size: 0.82rem;
+  opacity: 0.9;
+}
+
+.deck-poster.active {
+  outline: 2px solid color-mix(in srgb, var(--accent) 85%, #fff);
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
 .manage-summary-head {
@@ -707,6 +745,11 @@ button:active:not(:disabled) {
 
   .sheet-open-button {
     min-height: 48px;
+  }
+
+  .deck-shelf {
+    grid-auto-columns: minmax(132px, 1fr);
+    gap: 8px;
   }
 
   .manage-summary-stats {
