@@ -634,7 +634,7 @@ export default function App() {
             </div>
           )}
 
-          <p className="shortcut-help">⌨ ←/→ 이동 · Space 뒤집기 · P 자동재생 토글 · F 전체화면 · Esc 종료</p>
+          <p className="shortcut-help">⌨ ←/→ 이동 · Space 뒤집기 · P 자동재생 재생/정지 · F 전체화면 · Esc 종료</p>
         </section>
       )}
 
