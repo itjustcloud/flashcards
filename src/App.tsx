@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
-import { Download, Maximize2, Minimize2, Pause, Play, Plus, Settings2, Upload } from 'lucide-react';
+import { Download, Maximize2, Minimize2, MoreHorizontal, Pause, Play, Plus, Settings2, Upload } from 'lucide-react';
 import type { Card, Deck, DisplayMode, LanguageMode, OrderMode } from './types';
 import { buildQueue, clampIndex, nextIndex, prevIndex, progressLabel } from './utils/queue';
 import { isImportPayload, loadAppState, mergeDecks, saveAppState } from './utils/storage';
@@ -660,17 +660,18 @@ export default function App() {
                 >
                   <button type="button" className="deck-list-main" onClick={() => setSelectedDeck(deck.id)}>
                     <strong>{deck.name}</strong>
-                    <span>{deck.cards.length}단어</span>
                   </button>
-                  <div className="deck-item-menu-wrap">
-                    <button
-                      type="button"
-                      className="deck-more-btn"
-                      onClick={() => setDeckMenuOpenId((current) => (current === deck.id ? null : deck.id))}
-                      aria-label="덱 메뉴"
-                    >
-                      ...
-                    </button>
+                  <div className="deck-item-side">
+                    <span className="deck-count">{deck.cards.length}단어</span>
+                    <div className="deck-item-menu-wrap">
+                      <button
+                        type="button"
+                        className="deck-more-btn"
+                        onClick={() => setDeckMenuOpenId((current) => (current === deck.id ? null : deck.id))}
+                        aria-label="덱 메뉴"
+                      >
+                        <MoreHorizontal size={16} />
+                      </button>
                     {deckMenuOpenId === deck.id && (
                       <div className="deck-item-menu">
                         <button type="button" onClick={() => { setDeckMenuOpenId(null); renameDeckById(deck.id); }}>
@@ -683,6 +684,7 @@ export default function App() {
                     )}
                   </div>
                 </div>
+              </div>
               ))}
             </div>
           </section>

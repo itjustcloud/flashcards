@@ -510,15 +510,35 @@ button:active:not(:disabled) {
   align-items: center;
   border: 1px solid color-mix(in srgb, var(--accent) 20%, var(--border));
   background: color-mix(in srgb, var(--surface) 96%, var(--accent));
+  gap: 10px;
+}
+
+.deck-list-main {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 0;
+  min-height: auto;
+  text-align: left;
+  display: flex;
+  align-items: center;
 }
 
 .deck-list-item strong {
   font-size: 0.97rem;
 }
 
-.deck-list-item span {
+.deck-item-side {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.deck-count {
   font-size: 0.82rem;
   color: var(--muted);
+  min-width: 56px;
+  text-align: right;
 }
 
 .deck-list-item.active {
@@ -709,28 +729,17 @@ button:active:not(:disabled) {
   position: relative;
 }
 
-.deck-list-main {
-  flex: 1;
-  border: none;
-  background: transparent;
-  padding: 0;
-  min-height: auto;
-  text-align: left;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-}
-
 .deck-item-menu-wrap {
   position: relative;
 }
 
 .deck-more-btn {
-  min-height: 30px;
-  min-width: 30px;
-  padding: 0 8px;
-  border-radius: 8px;
+  min-height: 34px;
+  min-width: 34px;
+  padding: 0;
+  border-radius: 999px;
+  display: inline-grid;
+  place-items: center;
 }
 
 .deck-item-menu {
@@ -875,6 +884,12 @@ button:active:not(:disabled) {
 
   .deck-list-item {
     min-height: 60px;
+    padding: 8px 10px;
+  }
+
+  .deck-count {
+    min-width: 48px;
+    font-size: 0.8rem;
   }
 
   .manage-summary-stats {
