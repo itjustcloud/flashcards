@@ -368,6 +368,23 @@ button:active:not(:disabled) {
   background: color-mix(in srgb, var(--danger) 8%, var(--surface));
 }
 
+.autoplay-timer {
+  margin-top: 6px;
+  height: 4px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--surface) 80%, var(--accent));
+}
+
+.autoplay-timer-fill {
+  display: block;
+  height: 100%;
+  width: 100%;
+  transform-origin: left center;
+  background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 65%, var(--accent-strong)));
+  transition: transform 50ms linear;
+}
+
 .shortcut-help {
   margin: 10px 2px 0;
   color: var(--muted);

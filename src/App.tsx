@@ -48,9 +48,11 @@ export default function App() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [isOptionsSheetOpen, setIsOptionsSheetOpen] = useState(false);
+  const [autoplayRemainRatio, setAutoplayRemainRatio] = useState(1);
   const slideRef = useRef<HTMLDivElement | null>(null);
   const frontInputRef = useRef<HTMLInputElement | null>(null);
   const backInputRef = useRef<HTMLInputElement | null>(null);
+  const autoplayCycleStartRef = useRef<number | null>(null);
 
   useEffect(() => {
     saveAppState(state);
@@ -111,13 +113,38 @@ export default function App() {
   }, [queue.length]);
 
   useEffect(() => {
-    if (!autoplay || queue.length === 0) return;
+    if (!autoplay || queue.length === 0) {
+      setAutoplayRemainRatio(1);
+      autoplayCycleStartRef.current = null;
+      return;
+    }
+
+    autoplayCycleStartRef.current = Date.now();
+    setAutoplayRemainRatio(1);
+
     const id = window.setInterval(() => {
       setQueueIndex((current) => nextIndex(current, queue.length));
       setShowAnswer(false);
     }, autoplayIntervalSec * 1000);
     return () => window.clearInterval(id);
   }, [autoplay, autoplayIntervalSec, queue.length]);
+
+  useEffect(() => {
+    if (!autoplay || queue.length === 0) return;
+
+    autoplayCycleStartRef.current = Date.now();
+    setAutoplayRemainRatio(1);
+
+    const tick = window.setInterval(() => {
+      const startedAt = autoplayCycleStartRef.current;
+      if (!startedAt) return;
+      const elapsed = Date.now() - startedAt;
+      const remain = Math.max(0, 1 - elapsed / (autoplayIntervalSec * 1000));
+      setAutoplayRemainRatio(remain);
+    }, 50);
+
+    return () => window.clearInterval(tick);
+  }, [autoplay, autoplayIntervalSec, queue.length, queueIndex]);
 
   const updateDecks = (updater: (decks: Deck[]) => Deck[], selectedDeckId?: string | null) => {
     setState((current) => {
@@ -482,6 +509,12 @@ export default function App() {
               {isFullscreen || isFocusMode ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
             </button>
           </div>
+
+          {autoplay && queue.length > 0 && (
+            <div className="autoplay-timer" aria-label="자동재생 남은 시간">
+              <span className="autoplay-timer-fill" style={{ transform: `scaleX(${autoplayRemainRatio})` }} />
+            </div>
+          )}
 
           <section className="deck-selector panel" aria-label="플레이 덱 선택">
             <div className="deck-selector-head">
