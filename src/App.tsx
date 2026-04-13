@@ -487,7 +487,7 @@ export default function App() {
           <section className="deck-selector panel" aria-label="플레이 덱 선택">
             <div className="deck-selector-head">
               <p className="deck-selector-title">현재 덱</p>
-              <span className="badge">{selectedDeck ? `${selectedDeck.cards.length}장` : '덱 없음'}</span>
+              <span className="badge">{selectedDeck ? `${selectedDeck.cards.length}단어` : '덱 없음'}</span>
             </div>
             <div className="deck-selector-controls">
               <select
@@ -498,7 +498,7 @@ export default function App() {
                 <option value="">덱 선택</option>
                 {state.decks.map((deck) => (
                   <option key={deck.id} value={deck.id}>
-                    {deck.name} ({deck.cards.length})
+                    {deck.name} ({deck.cards.length}단어)
                   </option>
                 ))}
               </select>
@@ -614,7 +614,7 @@ export default function App() {
                   <option value="">덱 선택</option>
                   {state.decks.map((deck) => (
                     <option key={deck.id} value={deck.id}>
-                      {deck.name} ({deck.cards.length})
+                      {deck.name} ({deck.cards.length}단어)
                     </option>
                   ))}
                 </select>
