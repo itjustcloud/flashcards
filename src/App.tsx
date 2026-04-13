@@ -451,13 +451,23 @@ export default function App() {
             </button>
           </div>
 
-          <div className="header-actions compact" role="group" aria-label="플레이 추가 동작">
+          <div className="control-strip" role="group" aria-label="옵션 및 재생 제어">
             <button
               type="button"
               className="sheet-open-button"
               onClick={() => setIsOptionsSheetOpen(true)}
             >
               옵션
+            </button>
+            <button
+              type="button"
+              className={`autoplay-cta inline${autoplay ? ' running' : ''}`}
+              onClick={() => setAutoplay((current) => !current)}
+              disabled={queue.length === 0}
+              aria-label={autoplay ? '자동재생 정지' : '자동재생 시작'}
+            >
+              <span className="autoplay-state">{autoplay ? '■ 정지' : '▶ 자동재생 시작'}</span>
+              <span className="autoplay-meta">{autoplay ? '재생 중' : `${autoplayIntervalSec}초 · P`}</span>
             </button>
             <button
               type="button"
@@ -468,21 +478,6 @@ export default function App() {
               title={fullscreenAriaLabel}
             >
               {fullscreenIcon}
-            </button>
-          </div>
-
-          <div className="playback-row" role="group" aria-label="재생 제어">
-            <button
-              type="button"
-              className={`autoplay-cta${autoplay ? ' running' : ''}`}
-              onClick={() => setAutoplay((current) => !current)}
-              disabled={queue.length === 0}
-              aria-label={autoplay ? '자동재생 정지' : '자동재생 시작'}
-            >
-              <span className="autoplay-state">{autoplay ? '■ 정지' : '▶ 자동재생 시작'}</span>
-              <span className="autoplay-meta">
-                {autoplay ? '재생 중' : `${autoplayIntervalSec}초 간격 · 단축키 P`}
-              </span>
             </button>
           </div>
 
