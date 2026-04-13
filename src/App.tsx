@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import type { Card, Deck, DisplayMode, LanguageMode, OrderMode } from './types';
 import { buildQueue, clampIndex, nextIndex, prevIndex, progressLabel } from './utils/queue';
 import { isImportPayload, loadAppState, mergeDecks, saveAppState } from './utils/storage';
 
 const AUTOPLAY_MS = 3000;
+
+type AppTab = 'play' | 'manage';
 
 function uid(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
@@ -23,6 +25,7 @@ function supportsNativeFullscreen(): boolean {
 
 export default function App() {
   const [state, setState] = useState(loadAppState);
+  const [activeTab, setActiveTab] = useState<AppTab>('play');
   const [languageMode, setLanguageMode] = useState<LanguageMode>('front-to-back');
   const [displayMode, setDisplayMode] = useState<DisplayMode>('front-only');
   const [orderMode, setOrderMode] = useState<OrderMode>('sequential');
@@ -101,30 +104,6 @@ export default function App() {
     return () => window.clearInterval(id);
   }, [autoplay, queue.length]);
 
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (!selectedDeck || queue.length === 0) return;
-
-      if (event.key === 'ArrowRight') {
-        setQueueIndex((current) => nextIndex(current, queue.length));
-        setShowAnswer(false);
-      } else if (event.key === 'ArrowLeft') {
-        setQueueIndex((current) => prevIndex(current, queue.length));
-        setShowAnswer(false);
-      } else if (event.key === ' ') {
-        event.preventDefault();
-        setShowAnswer((current) => !current);
-      } else if (event.key.toLowerCase() === 'f') {
-        void togglePresentationMode();
-      } else if (event.key === 'Escape' && isFocusMode) {
-        setIsFocusMode(false);
-      }
-    };
-
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  });
-
   const updateDecks = (updater: (decks: Deck[]) => Deck[], selectedDeckId?: string | null) => {
     setState((current) => {
       const decks = updater(current.decks);
@@ -135,6 +114,13 @@ export default function App() {
         : fallbackSelected;
       return { ...current, decks, selectedDeckId: resolvedSelected };
     });
+  };
+
+  const setSelectedDeck = (deckId: string | null) => {
+    setState((current) => ({ ...current, selectedDeckId: deckId }));
+    setQueueIndex(0);
+    setShowAnswer(false);
+    setAutoplay(false);
   };
 
   const createDeck = () => {
@@ -169,6 +155,7 @@ export default function App() {
     setStatusMessage('덱이 삭제되었습니다.');
     setQueueIndex(0);
     setShowAnswer(false);
+    setAutoplay(false);
   };
 
   const addCard = (): boolean => {
@@ -279,6 +266,9 @@ export default function App() {
         };
       });
       setStatusMessage(importMode === 'overwrite' ? '덮어쓰기 가져오기 완료' : '병합 가져오기 완료');
+      setQueueIndex(0);
+      setShowAnswer(false);
+      setAutoplay(false);
     } catch {
       setStatusMessage('JSON 파싱 실패');
     }
@@ -294,7 +284,7 @@ export default function App() {
     setShowAnswer(false);
   };
 
-  async function togglePresentationMode() {
+  const togglePresentationMode = useCallback(async () => {
     if (isFocusMode) {
       setIsFocusMode(false);
       return;
@@ -319,7 +309,47 @@ export default function App() {
     }
 
     setIsFocusMode(true);
-  }
+  }, [isFocusMode, queue.length]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target) {
+        const tagName = target.tagName;
+        if (target.isContentEditable || tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT') {
+          return;
+        }
+      }
+
+      if (event.key === 'Escape' && isFocusMode) {
+        setIsFocusMode(false);
+        return;
+      }
+
+      if (event.key.toLowerCase() === 'f') {
+        void togglePresentationMode();
+        return;
+      }
+
+      if (!selectedDeck || queue.length === 0) return;
+
+      if (event.key === 'ArrowRight') {
+        setQueueIndex((current) => nextIndex(current, queue.length));
+        setShowAnswer(false);
+      } else if (event.key === 'ArrowLeft') {
+        setQueueIndex((current) => prevIndex(current, queue.length));
+        setShowAnswer(false);
+      } else if (event.key === ' ') {
+        event.preventDefault();
+        setShowAnswer((current) => !current);
+      } else if (event.key.toLowerCase() === 'p') {
+        setAutoplay((current) => !current);
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isFocusMode, queue.length, selectedDeck, togglePresentationMode]);
 
   const questionText =
     activeCard && languageMode === 'front-to-back' ? activeCard.front : activeCard?.back ?? '';
@@ -330,165 +360,65 @@ export default function App() {
     displayMode === 'flip' ? (showAnswer ? answerText : questionText) : questionText;
   const secondaryText = displayMode === 'front-only' && showAnswer ? answerText : '';
 
+  const fullscreenAriaLabel = isFullscreen || isFocusMode ? '포커스 모드 또는 전체화면 종료' : '포커스 모드 또는 전체화면 시작';
+  const fullscreenIcon = isFullscreen || isFocusMode ? '✕' : '⛶';
+
   return (
     <main className={`app${isFocusMode ? ' focus-mode' : ''}`}>
-      <h1 className="app-title">Flashcards Web App</h1>
-
-      <section className="panel hero-panel" ref={slideRef} aria-label="슬라이드쇼 영역">
-        <div className="slideshow-header">
-          <h2>슬라이드쇼</h2>
-          {(isFocusMode || isFullscreen) && (
-            <button
-              type="button"
-              className="focus-exit"
-              onClick={() => {
-                void togglePresentationMode();
-              }}
-              aria-label="포커스 모드 또는 전체화면 종료"
-            >
-              종료
-            </button>
-          )}
-        </div>
-
-        <div className="row wrap deck-row">
-          <label>
-            빠른 덱 선택
-            <select
-              aria-label="슬라이드쇼 덱 선택"
-              value={state.selectedDeckId ?? ''}
-              onChange={(event) =>
-                setState((current) => ({ ...current, selectedDeckId: event.target.value || null }))
-              }
-            >
-              <option value="">덱 선택</option>
-              {state.decks.map((deck) => (
-                <option key={deck.id} value={deck.id}>
-                  {deck.name} ({deck.cards.length})
-                </option>
-              ))}
-            </select>
-          </label>
-          <span className="badge">진행: {progressLabel(queueIndex, queue.length)}</span>
-        </div>
-
-        <div className="slide-stage" aria-live="polite">
-          {!activeCard && <p className="empty-slide">카드를 추가하면 슬라이드가 시작됩니다.</p>}
-          {activeCard && (
-            <>
-              <p className="slide-main">{mainText}</p>
-              {secondaryText && <p className="slide-sub">{secondaryText}</p>}
-            </>
-          )}
-        </div>
-
-        <div className="thumb-controls" role="group" aria-label="슬라이드 기본 조작">
-          <button onClick={prevCard} disabled={queue.length === 0} aria-label="이전 카드">
-            이전
+      <header className="topbar">
+        <h1 className="app-title">Flashcards Web App</h1>
+        <nav className="top-tabs" aria-label="화면 전환">
+          <button
+            type="button"
+            className={`tab-button${activeTab === 'play' ? ' active' : ''}`}
+            onClick={() => setActiveTab('play')}
+            aria-pressed={activeTab === 'play'}
+          >
+            플레이
           </button>
           <button
-            onClick={() => setShowAnswer((current) => !current)}
-            disabled={queue.length === 0}
-            aria-label="카드 뒤집기 또는 정답 보기"
+            type="button"
+            className={`tab-button${activeTab === 'manage' ? ' active' : ''}`}
+            onClick={() => setActiveTab('manage')}
+            aria-pressed={activeTab === 'manage'}
           >
-            뒤집기
+            관리
           </button>
-          <button onClick={nextCard} disabled={queue.length === 0} aria-label="다음 카드">
-            다음
-          </button>
-        </div>
+        </nav>
+      </header>
 
-        <div className="utility-controls" role="group" aria-label="슬라이드 보조 조작">
-          <button onClick={() => setAutoplay((current) => !current)} disabled={queue.length === 0}>
-            {autoplay ? '자동재생 정지' : `자동재생 ${AUTOPLAY_MS / 1000}초`}
-          </button>
-          <button onClick={() => void togglePresentationMode()} disabled={queue.length === 0}>
-            {isFullscreen || isFocusMode ? '포커스/전체화면 종료' : '포커스/전체화면'}
-          </button>
-        </div>
-
-        <p className="shortcut-help">⌨ ←/→ 이동 · Space 뒤집기 · F 포커스/전체화면 · Esc 종료</p>
-
-        <details className="panel slideshow-settings">
-          <summary>슬라이드 세부 설정</summary>
-          <div className="panel-body">
-            <div className="row wrap badges">
-              <span className="badge">언어: {languageMode === 'front-to-back' ? '앞 → 뒤' : '뒤 → 앞'}</span>
-              <span className="badge">표시: {displayMode === 'front-only' ? '앞면 + 정답' : '플립'}</span>
-              <span className="badge">순서: {orderMode === 'sequential' ? '정순' : '역순'}</span>
-              <span className="badge">셔플: {shuffleMode ? '켜짐' : '꺼짐'}</span>
-              <span className="badge">자동재생: {autoplay ? '켜짐' : '꺼짐'}</span>
-            </div>
-            <div className="row wrap">
-              <label>
-                언어 방향
-                <select
-                  aria-label="언어 방향"
-                  value={languageMode}
-                  onChange={(event) => setLanguageMode(event.target.value as LanguageMode)}
-                >
-                  <option value="front-to-back">앞면 → 뒷면</option>
-                  <option value="back-to-front">뒷면 → 앞면</option>
-                </select>
-              </label>
-              <label>
-                표시 방식
-                <select
-                  aria-label="표시 방식"
-                  value={displayMode}
-                  onChange={(event) => setDisplayMode(event.target.value as DisplayMode)}
-                >
-                  <option value="front-only">앞면 + 정답 보기</option>
-                  <option value="flip">플립 카드</option>
-                </select>
-              </label>
-              <label>
-                카드 순서
-                <select
-                  aria-label="카드 순서"
-                  value={orderMode}
-                  onChange={(event) => setOrderMode(event.target.value as OrderMode)}
-                >
-                  <option value="sequential">정순</option>
-                  <option value="reverse">역순</option>
-                </select>
-              </label>
-              <label>
-                <input
-                  aria-label="셔플 모드"
-                  type="checkbox"
-                  checked={shuffleMode}
-                  onChange={(event) => setShuffleMode(event.target.checked)}
-                />
-                셔플
-              </label>
+      {activeTab === 'play' && (
+        <section className="panel hero-panel" ref={slideRef} aria-label="슬라이드쇼 영역">
+          <div className="slideshow-header">
+            <h2>슬라이드쇼</h2>
+            <div className="header-actions">
+              <button
+                type="button"
+                className="icon-button"
+                onClick={() => void togglePresentationMode()}
+                disabled={queue.length === 0}
+                aria-label={fullscreenAriaLabel}
+                title={fullscreenAriaLabel}
+              >
+                {fullscreenIcon}
+              </button>
             </div>
           </div>
-        </details>
-      </section>
 
-      <section className="advanced-panels">
-        <h2>고급 관리</h2>
-
-        <details className="panel advanced-panel">
-          <summary>덱 관리 (Deck CRUD)</summary>
-          <div className="panel-body">
-            <div className="row wrap">
-              <input
-                placeholder="새 덱 이름"
-                value={deckNameInput}
-                onChange={(event) => setDeckNameInput(event.target.value)}
-              />
-              <button onClick={createDeck}>덱 생성</button>
+          <section className="deck-selector panel" aria-label="플레이 덱 선택">
+            <div className="deck-selector-head">
+              <p className="deck-selector-title">현재 덱</p>
+              <span className="badge">진행: {progressLabel(queueIndex, queue.length)}</span>
             </div>
-
-            <div className="row wrap">
+            <div className="deck-current">
+              <strong>{selectedDeck?.name ?? '덱 없음'}</strong>
+              <span>{selectedDeck ? `${selectedDeck.cards.length}장` : '카드를 추가해 시작하세요'}</span>
+            </div>
+            <div className="deck-selector-controls">
               <select
-                aria-label="관리용 덱 선택"
+                aria-label="슬라이드쇼 덱 선택"
                 value={state.selectedDeckId ?? ''}
-                onChange={(event) =>
-                  setState((current) => ({ ...current, selectedDeckId: event.target.value || null }))
-                }
+                onChange={(event) => setSelectedDeck(event.target.value || null)}
               >
                 <option value="">덱 선택</option>
                 {state.decks.map((deck) => (
@@ -497,115 +427,246 @@ export default function App() {
                   </option>
                 ))}
               </select>
-              <button onClick={deleteDeck} disabled={!selectedDeck}>
-                덱 삭제
-              </button>
-            </div>
-
-            {selectedDeck && (
-              <div className="row wrap">
-                <input
-                  aria-label="선택된 덱 이름"
-                  value={selectedDeck.name}
-                  onChange={(event) => renameDeck(event.target.value)}
-                />
-              </div>
-            )}
-          </div>
-        </details>
-
-        <details className="panel advanced-panel">
-          <summary>카드 관리 (Card CRUD)</summary>
-          <div className="panel-body">
-            <div className="row quick-add-row">
-              <input
-                ref={frontInputRef}
-                placeholder="앞면"
-                value={cardFrontInput}
-                onChange={(event) => setCardFrontInput(event.target.value)}
-                onKeyDown={handleFrontInputKeyDown}
-                disabled={!selectedDeck}
-              />
-              <input
-                ref={backInputRef}
-                placeholder="뒷면"
-                value={cardBackInput}
-                onChange={(event) => setCardBackInput(event.target.value)}
-                onKeyDown={handleBackInputKeyDown}
-                disabled={!selectedDeck}
-              />
-              <button onClick={handleAddCardClick} disabled={!selectedDeck}>
-                카드 추가
-              </button>
-            </div>
-
-            {selectedDeck && (
-              <div className="cards-list">
-                {selectedDeck.cards.map((card) => (
-                  <div key={card.id} className="card-edit-row">
-                    <input
-                      aria-label="카드 앞면"
-                      value={card.front}
-                      onChange={(event) => updateCard(card.id, 'front', event.target.value)}
-                    />
-                    <input
-                      aria-label="카드 뒷면"
-                      value={card.back}
-                      onChange={(event) => updateCard(card.id, 'back', event.target.value)}
-                    />
-                    <button onClick={() => deleteCard(card.id)} aria-label="카드 삭제">
-                      삭제
-                    </button>
-                  </div>
+              <div className="deck-chips" role="group" aria-label="빠른 덱 전환">
+                {state.decks.slice(0, 4).map((deck) => (
+                  <button
+                    key={deck.id}
+                    type="button"
+                    className={`chip${deck.id === state.selectedDeckId ? ' active' : ''}`}
+                    onClick={() => setSelectedDeck(deck.id)}
+                  >
+                    {deck.name}
+                  </button>
                 ))}
               </div>
+            </div>
+          </section>
+
+          <div className="slide-options" role="group" aria-label="슬라이드 옵션">
+            <button
+              type="button"
+              className="option-toggle"
+              onClick={() =>
+                setLanguageMode((current) =>
+                  current === 'front-to-back' ? 'back-to-front' : 'front-to-back'
+                )
+              }
+            >
+              <span className="option-icon">⇄</span>
+              <span>언어 {languageMode === 'front-to-back' ? '앞→뒤' : '뒤→앞'}</span>
+            </button>
+            <button
+              type="button"
+              className="option-toggle"
+              onClick={() =>
+                setDisplayMode((current) => (current === 'front-only' ? 'flip' : 'front-only'))
+              }
+            >
+              <span className="option-icon">◫</span>
+              <span>표시 {displayMode === 'front-only' ? '앞+정답' : '플립'}</span>
+            </button>
+            <button
+              type="button"
+              className="option-toggle"
+              onClick={() =>
+                setOrderMode((current) => (current === 'sequential' ? 'reverse' : 'sequential'))
+              }
+            >
+              <span className="option-icon">↕</span>
+              <span>순서 {orderMode === 'sequential' ? '정순' : '역순'}</span>
+            </button>
+            <button
+              type="button"
+              className={`option-toggle${shuffleMode ? ' active' : ''}`}
+              onClick={() => setShuffleMode((current) => !current)}
+              aria-pressed={shuffleMode}
+            >
+              <span className="option-icon">🔀</span>
+              <span>셔플 {shuffleMode ? 'ON' : 'OFF'}</span>
+            </button>
+          </div>
+
+          <div className="slide-stage" aria-live="polite">
+            {!activeCard && <p className="empty-slide">카드를 추가하면 슬라이드가 시작됩니다.</p>}
+            {activeCard && (
+              <>
+                <p className="slide-main">{mainText}</p>
+                {secondaryText && <p className="slide-sub">{secondaryText}</p>}
+              </>
             )}
           </div>
-        </details>
 
-        <details className="panel advanced-panel">
-          <summary>가져오기/내보내기 (Import / Export)</summary>
-          <div className="panel-body">
-            <div className="row wrap">
-              <label>
-                <input
-                  type="radio"
-                  name="import-mode"
-                  checked={importMode === 'merge'}
-                  onChange={() => setImportMode('merge')}
-                />
-                병합
-              </label>
-              <label>
-                <input
-                  type="radio"
-                  name="import-mode"
-                  checked={importMode === 'overwrite'}
-                  onChange={() => setImportMode('overwrite')}
-                />
-                덮어쓰기
-              </label>
-              <input
-                type="file"
-                accept="application/json"
-                onChange={(event) => void importJson(event.target.files?.[0] ?? null)}
-              />
-              <button onClick={exportJson}>JSON 내보내기</button>
-            </div>
+          <div className="thumb-controls" role="group" aria-label="슬라이드 기본 조작">
+            <button onClick={prevCard} disabled={queue.length === 0} aria-label="이전 카드">
+              이전
+            </button>
+            <button
+              onClick={() => setShowAnswer((current) => !current)}
+              disabled={queue.length === 0}
+              aria-label="카드 뒤집기 또는 정답 보기"
+            >
+              뒤집기
+            </button>
+            <button onClick={nextCard} disabled={queue.length === 0} aria-label="다음 카드">
+              다음
+            </button>
           </div>
-        </details>
 
-        <details className="panel advanced-panel">
-          <summary>테마</summary>
-          <div className="panel-body">
-            <div className="row">
-              <button onClick={() => setTheme('light')}>라이트</button>
-              <button onClick={() => setTheme('dark')}>다크</button>
-              <button onClick={() => setTheme('system')}>시스템</button>
-            </div>
+          <div className="playback-row" role="group" aria-label="재생 제어">
+            <button
+              type="button"
+              className={`autoplay-cta${autoplay ? ' running' : ''}`}
+              onClick={() => setAutoplay((current) => !current)}
+              disabled={queue.length === 0}
+              aria-label={autoplay ? '자동재생 정지' : '자동재생 시작'}
+            >
+              <span className="autoplay-state">{autoplay ? '■ 정지' : '▶ 자동재생 시작'}</span>
+              <span className="autoplay-meta">{autoplay ? '재생 중' : `${AUTOPLAY_MS / 1000}초 간격`}</span>
+              <kbd className="key-hint">P</kbd>
+            </button>
           </div>
-        </details>
-      </section>
+
+          <p className="shortcut-help">⌨ ←/→ 이동 · Space 뒤집기 · P 자동재생 · F 전체화면 · Esc 종료</p>
+        </section>
+      )}
+
+      {activeTab === 'manage' && (
+        <section className="manage-screen" aria-label="고급 관리">
+          <section className="panel advanced-panel">
+            <h2>덱 관리</h2>
+            <div className="panel-body">
+              <div className="row wrap">
+                <input
+                  placeholder="새 덱 이름"
+                  value={deckNameInput}
+                  onChange={(event) => setDeckNameInput(event.target.value)}
+                />
+                <button onClick={createDeck}>덱 생성</button>
+              </div>
+
+              <div className="row wrap">
+                <select
+                  aria-label="관리용 덱 선택"
+                  value={state.selectedDeckId ?? ''}
+                  onChange={(event) => setSelectedDeck(event.target.value || null)}
+                >
+                  <option value="">덱 선택</option>
+                  {state.decks.map((deck) => (
+                    <option key={deck.id} value={deck.id}>
+                      {deck.name} ({deck.cards.length})
+                    </option>
+                  ))}
+                </select>
+                <button onClick={deleteDeck} disabled={!selectedDeck}>
+                  덱 삭제
+                </button>
+              </div>
+
+              {selectedDeck && (
+                <div className="row wrap">
+                  <input
+                    aria-label="선택된 덱 이름"
+                    value={selectedDeck.name}
+                    onChange={(event) => renameDeck(event.target.value)}
+                  />
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section className="panel advanced-panel">
+            <h2>카드 관리</h2>
+            <div className="panel-body">
+              <div className="row quick-add-row">
+                <input
+                  ref={frontInputRef}
+                  placeholder="앞면"
+                  value={cardFrontInput}
+                  onChange={(event) => setCardFrontInput(event.target.value)}
+                  onKeyDown={handleFrontInputKeyDown}
+                  disabled={!selectedDeck}
+                />
+                <input
+                  ref={backInputRef}
+                  placeholder="뒷면"
+                  value={cardBackInput}
+                  onChange={(event) => setCardBackInput(event.target.value)}
+                  onKeyDown={handleBackInputKeyDown}
+                  disabled={!selectedDeck}
+                />
+                <button onClick={handleAddCardClick} disabled={!selectedDeck}>
+                  카드 추가
+                </button>
+              </div>
+
+              {selectedDeck && (
+                <div className="cards-list">
+                  {selectedDeck.cards.map((card) => (
+                    <div key={card.id} className="card-edit-row">
+                      <input
+                        aria-label="카드 앞면"
+                        value={card.front}
+                        onChange={(event) => updateCard(card.id, 'front', event.target.value)}
+                      />
+                      <input
+                        aria-label="카드 뒷면"
+                        value={card.back}
+                        onChange={(event) => updateCard(card.id, 'back', event.target.value)}
+                      />
+                      <button onClick={() => deleteCard(card.id)} aria-label="카드 삭제">
+                        삭제
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section className="panel advanced-panel">
+            <h2>가져오기/내보내기</h2>
+            <div className="panel-body">
+              <div className="row wrap">
+                <label>
+                  <input
+                    type="radio"
+                    name="import-mode"
+                    checked={importMode === 'merge'}
+                    onChange={() => setImportMode('merge')}
+                  />
+                  병합
+                </label>
+                <label>
+                  <input
+                    type="radio"
+                    name="import-mode"
+                    checked={importMode === 'overwrite'}
+                    onChange={() => setImportMode('overwrite')}
+                  />
+                  덮어쓰기
+                </label>
+                <input
+                  type="file"
+                  accept="application/json"
+                  onChange={(event) => void importJson(event.target.files?.[0] ?? null)}
+                />
+                <button onClick={exportJson}>JSON 내보내기</button>
+              </div>
+            </div>
+          </section>
+
+          <section className="panel advanced-panel">
+            <h2>테마</h2>
+            <div className="panel-body">
+              <div className="row wrap">
+                <button onClick={() => setTheme('light')}>라이트</button>
+                <button onClick={() => setTheme('dark')}>다크</button>
+                <button onClick={() => setTheme('system')}>시스템</button>
+              </div>
+            </div>
+          </section>
+        </section>
+      )}
 
       {statusMessage && <p className="status">{statusMessage}</p>}
     </main>
