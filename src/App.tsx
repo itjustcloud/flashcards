@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
-import { ArrowDown, ArrowUp, Download, Maximize2, Minimize2, Pause, Play, Plus, Settings2, Upload } from 'lucide-react';
+import { Download, Maximize2, Minimize2, Pause, Play, Plus, Settings2, Upload } from 'lucide-react';
 import type { Card, Deck, DisplayMode, LanguageMode, OrderMode } from './types';
 import { buildQueue, clampIndex, nextIndex, prevIndex, progressLabel } from './utils/queue';
 import { isImportPayload, loadAppState, mergeDecks, saveAppState } from './utils/storage';
@@ -42,10 +42,7 @@ export default function App() {
   const [queueIndex, setQueueIndex] = useState(0);
   const [cardFrontInput, setCardFrontInput] = useState('');
   const [cardBackInput, setCardBackInput] = useState('');
-  const [cardFilterQuery, setCardFilterQuery] = useState('');
-  const [editingCardId, setEditingCardId] = useState<string | null>(null);
-  const [editFrontInput, setEditFrontInput] = useState('');
-  const [editBackInput, setEditBackInput] = useState('');
+  const [deckMenuOpenId, setDeckMenuOpenId] = useState<string | null>(null);
   const [importMode, setImportMode] = useState<'merge' | 'overwrite'>('merge');
   const [statusMessage, setStatusMessage] = useState('');
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -104,15 +101,6 @@ export default function App() {
     () => state.decks.find((deck) => deck.id === state.selectedDeckId) ?? null,
     [state.decks, state.selectedDeckId]
   );
-  const filteredCards = useMemo(() => {
-    if (!selectedDeck) return [];
-    const query = cardFilterQuery.trim().toLowerCase();
-    if (!query) return selectedDeck.cards;
-    return selectedDeck.cards.filter(
-      (card) =>
-        card.front.toLowerCase().includes(query) || card.back.toLowerCase().includes(query)
-    );
-  }, [cardFilterQuery, selectedDeck]);
 
   const queue = useMemo(() => {
     if (!selectedDeck) return [];
@@ -126,10 +114,7 @@ export default function App() {
   }, [queue.length]);
 
   useEffect(() => {
-    setCardFilterQuery('');
-    setEditingCardId(null);
-    setEditFrontInput('');
-    setEditBackInput('');
+    setDeckMenuOpenId(null);
   }, [selectedDeck?.id]);
 
   useEffect(() => {
@@ -205,6 +190,19 @@ export default function App() {
     createDeckByName(name);
   };
 
+  const renameDeckById = (deckId: string) => {
+    const deck = state.decks.find((item) => item.id === deckId);
+    if (!deck) return;
+    const renamed = window.prompt('덱 이름 변경', deck.name)?.trim();
+    if (!renamed) return;
+    updateDecks((decks) =>
+      decks.map((item) =>
+        item.id === deckId ? { ...item, name: renamed, updatedAt: nowIso() } : item
+      )
+    );
+    setStatusMessage('덱 이름이 변경되었습니다.');
+  };
+
   const renameDeck = (name: string) => {
     if (!selectedDeck) return;
     updateDecks((decks) =>
@@ -214,10 +212,11 @@ export default function App() {
     );
   };
 
-  const deleteDeck = () => {
-    if (!selectedDeck) return;
-    if (!window.confirm('현재 덱을 삭제할까요?')) return;
-    updateDecks((decks) => decks.filter((deck) => deck.id !== selectedDeck.id));
+  const deleteDeckById = (deckId: string) => {
+    const deck = state.decks.find((item) => item.id === deckId);
+    if (!deck) return;
+    if (!window.confirm(`'${deck.name}' 덱을 삭제할까요?`)) return;
+    updateDecks((decks) => decks.filter((item) => item.id !== deckId));
     setStatusMessage('덱이 삭제되었습니다.');
     setQueueIndex(0);
     setShowAnswer(false);
@@ -272,77 +271,6 @@ export default function App() {
     window.setTimeout(() => frontInputRef.current?.focus(), 0);
   };
 
-  const startEditCard = (card: Card) => {
-    setEditingCardId(card.id);
-    setEditFrontInput(card.front);
-    setEditBackInput(card.back);
-  };
-
-  const cancelEditCard = () => {
-    setEditingCardId(null);
-    setEditFrontInput('');
-    setEditBackInput('');
-  };
-
-  const saveEditCard = () => {
-    if (!selectedDeck || !editingCardId) return;
-    const front = editFrontInput.trim();
-    const back = editBackInput.trim();
-    if (!front || !back) return;
-
-    updateDecks((decks) =>
-      decks.map((deck) => {
-        if (deck.id !== selectedDeck.id) return deck;
-        return {
-          ...deck,
-          updatedAt: nowIso(),
-          cards: deck.cards.map((card) =>
-            card.id === editingCardId ? { ...card, front, back } : card
-          )
-        };
-      })
-    );
-
-    setStatusMessage('카드가 수정되었습니다.');
-    cancelEditCard();
-  };
-
-  const deleteCard = (cardId: string) => {
-    if (!selectedDeck) return;
-    updateDecks((decks) =>
-      decks.map((deck) =>
-        deck.id === selectedDeck.id
-          ? {
-              ...deck,
-              updatedAt: nowIso(),
-              cards: deck.cards.filter((card) => card.id !== cardId)
-            }
-          : deck
-      )
-    );
-    setStatusMessage('카드가 삭제되었습니다.');
-  };
-
-  const moveCard = (cardId: string, direction: 'up' | 'down') => {
-    if (!selectedDeck) return;
-    updateDecks((decks) =>
-      decks.map((deck) => {
-        if (deck.id !== selectedDeck.id) return deck;
-        const index = deck.cards.findIndex((card) => card.id === cardId);
-        if (index < 0) return deck;
-        const target = direction === 'up' ? index - 1 : index + 1;
-        if (target < 0 || target >= deck.cards.length) return deck;
-        const cards = [...deck.cards];
-        const [picked] = cards.splice(index, 1);
-        cards.splice(target, 0, picked);
-        return {
-          ...deck,
-          updatedAt: nowIso(),
-          cards
-        };
-      })
-    );
-  };
 
   const setTheme = (theme: 'light' | 'dark' | 'system') => {
     setState((current) => ({ ...current, theme }));
@@ -724,16 +652,37 @@ export default function App() {
             </div>
             <div className="deck-list" role="listbox" aria-label="덱 목록 선택">
               {state.decks.map((deck) => (
-                <button
+                <div
                   key={deck.id}
-                  type="button"
                   className={`deck-list-item${deck.id === state.selectedDeckId ? ' active' : ''}`}
-                  onClick={() => setSelectedDeck(deck.id)}
+                  role="option"
                   aria-selected={deck.id === state.selectedDeckId}
                 >
-                  <strong>{deck.name}</strong>
-                  <span>{deck.cards.length}단어</span>
-                </button>
+                  <button type="button" className="deck-list-main" onClick={() => setSelectedDeck(deck.id)}>
+                    <strong>{deck.name}</strong>
+                    <span>{deck.cards.length}단어</span>
+                  </button>
+                  <div className="deck-item-menu-wrap">
+                    <button
+                      type="button"
+                      className="deck-more-btn"
+                      onClick={() => setDeckMenuOpenId((current) => (current === deck.id ? null : deck.id))}
+                      aria-label="덱 메뉴"
+                    >
+                      ...
+                    </button>
+                    {deckMenuOpenId === deck.id && (
+                      <div className="deck-item-menu">
+                        <button type="button" onClick={() => { setDeckMenuOpenId(null); renameDeckById(deck.id); }}>
+                          이름 변경
+                        </button>
+                        <button type="button" onClick={() => { setDeckMenuOpenId(null); deleteDeckById(deck.id); }}>
+                          삭제
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
               ))}
             </div>
           </section>
@@ -741,24 +690,21 @@ export default function App() {
           <section className="panel advanced-panel">
             <h2>덱 설정</h2>
             <div className="panel-body deck-manage-body">
-              <div className="manage-group">
-                <p className="group-label">덱 이름 변경 / 삭제</p>
-                {selectedDeck && (
-                  <>
-                    <div className="row wrap">
-                      <input
-                        aria-label="선택된 덱 이름"
-                        value={selectedDeck.name}
-                        onChange={(event) => renameDeck(event.target.value)}
-                      />
-                    </div>
-                    <div className="row wrap">
-                      <button onClick={deleteDeck}>이 덱 삭제</button>
-                    </div>
-                  </>
-                )}
-                {!selectedDeck && <p className="helper-text">위 덱 목록에서 먼저 덱을 선택하세요.</p>}
-              </div>
+              {selectedDeck ? (
+                <div className="manage-group">
+                  <p className="group-label">선택된 덱 이름 변경</p>
+                  <div className="row wrap">
+                    <input
+                      aria-label="선택된 덱 이름"
+                      value={selectedDeck.name}
+                      onChange={(event) => renameDeck(event.target.value)}
+                    />
+                  </div>
+                  <p className="helper-text">삭제는 덱 목록 항목의 ... 메뉴에서 할 수 있어요.</p>
+                </div>
+              ) : (
+                <p className="empty-state">먼저 덱을 선택해 주세요.</p>
+              )}
             </div>
           </section>
 
@@ -799,87 +745,19 @@ export default function App() {
                   <p className="helper-text">Enter로 빠르게 이동/추가할 수 있습니다. 추가 후 앞면 입력칸에 자동 포커스됩니다.</p>
 
                   <div className="cards-toolbar">
-                    <input
-                      aria-label="카드 검색"
-                      placeholder="카드 검색 (앞면/뒷면)"
-                      value={cardFilterQuery}
-                      onChange={(event) => setCardFilterQuery(event.target.value)}
-                    />
-                    <span className="badge">
-                      {filteredCards.length}/{selectedDeck.cards.length}개 표시
-                    </span>
+                    <span className="badge">등록된 단어 {selectedDeck.cards.length}개</span>
                   </div>
 
                   <div className="cards-table-wrap">
-                    {editingCardId && (
-                      <div className="edit-card-panel">
-                        <p className="group-label">선택 카드 수정</p>
-                        <div className="row wrap">
-                          <input
-                            aria-label="수정 앞면"
-                            value={editFrontInput}
-                            onChange={(event) => setEditFrontInput(event.target.value)}
-                          />
-                          <input
-                            aria-label="수정 뒷면"
-                            value={editBackInput}
-                            onChange={(event) => setEditBackInput(event.target.value)}
-                          />
-                        </div>
-                        <div className="row wrap">
-                          <button onClick={saveEditCard}>저장</button>
-                          <button type="button" onClick={cancelEditCard}>취소</button>
-                        </div>
+                    {selectedDeck.cards.length > 0 ? (
+                      <div className="word-flex-view">
+                        {selectedDeck.cards.map((card) => (
+                          <span key={card.id} className="word-chip">{card.front}</span>
+                        ))}
                       </div>
+                    ) : (
+                      <p className="empty-state">아직 카드가 없습니다. 위 입력창에서 첫 카드를 추가해 보세요.</p>
                     )}
-
-                    <div className="cards-table-body list-mode">
-                      {filteredCards.length > 0 ? (
-                        filteredCards.map((card) => (
-                          <div key={card.id} className="card-list-item">
-                            <div className="card-text">
-                              <strong>{card.front}</strong>
-                              <span>{card.back}</span>
-                            </div>
-                            <div className="card-actions">
-                              <button
-                                type="button"
-                                onClick={() => moveCard(card.id, 'up')}
-                                disabled={selectedDeck.cards.findIndex((c) => c.id === card.id) === 0}
-                                aria-label="위로 이동"
-                                title="위로 이동"
-                              >
-                                <ArrowUp size={14} />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => moveCard(card.id, 'down')}
-                                disabled={selectedDeck.cards.findIndex((c) => c.id === card.id) === selectedDeck.cards.length - 1}
-                                aria-label="아래로 이동"
-                                title="아래로 이동"
-                              >
-                                <ArrowDown size={14} />
-                              </button>
-                              <button type="button" onClick={() => startEditCard(card)}>수정</button>
-                              <button
-                                className="delete-icon-button"
-                                onClick={() => deleteCard(card.id)}
-                                aria-label="카드 삭제"
-                                title="카드 삭제"
-                              >
-                                삭제
-                              </button>
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <p className="empty-state">
-                          {selectedDeck.cards.length === 0
-                            ? '아직 카드가 없습니다. 위 입력창에서 첫 카드를 추가해 보세요.'
-                            : '검색 결과가 없습니다. 검색어를 바꿔보세요.'}
-                        </p>
-                      )}
-                    </div>
                   </div>
                 </>
               )}
