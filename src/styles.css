@@ -339,10 +339,13 @@ button:active:not(:disabled) {
 
 .header-actions.compact {
   margin-top: 10px;
+  display: grid;
+  grid-template-columns: 1fr 44px;
+  width: 100%;
 }
 
 .header-actions.compact .sheet-open-button {
-  flex: 1;
+  width: 100%;
 }
 
 .autoplay-cta {
@@ -371,19 +374,6 @@ button:active:not(:disabled) {
 .autoplay-meta {
   font-size: 0.88rem;
   color: var(--muted);
-}
-
-.key-hint {
-  grid-row: 1 / span 2;
-  align-self: center;
-  font: inherit;
-  font-size: 0.83rem;
-  font-weight: 700;
-  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
-  border-bottom-width: 2px;
-  border-radius: 6px;
-  padding: 4px 8px;
-  background: var(--surface);
 }
 
 .shortcut-help {
@@ -429,6 +419,32 @@ button:active:not(:disabled) {
   width: 38px;
   height: 38px;
   font-size: 18px;
+}
+
+.interval-options {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.interval-label {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin-right: 2px;
+}
+
+.interval-chip {
+  min-height: 38px;
+  padding: 6px 12px;
+  border-radius: 999px;
+}
+
+.interval-chip.active {
+  border-color: color-mix(in srgb, var(--accent) 65%, var(--border));
+  background: color-mix(in srgb, var(--accent) 11%, var(--surface));
+  color: var(--accent-strong);
 }
 
 @keyframes sheet-fade-in {
@@ -558,14 +574,27 @@ button:active:not(:disabled) {
 
 @media (orientation: landscape) and (max-height: 500px) {
   .focus-mode .hero-panel {
-    gap: 6px;
-    padding-top: 10px;
+    gap: 4px;
+    padding-top: 8px;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom));
   }
 
   .focus-mode .thumb-controls,
   .focus-mode .playback-row,
   .focus-mode .header-actions.compact,
   .focus-mode .progress-wrap {
-    margin-top: 6px;
+    margin-top: 4px;
+  }
+
+  .focus-mode .deck-selector {
+    display: none;
+  }
+
+  .focus-mode .autoplay-state {
+    font-size: 1rem;
+  }
+
+  .focus-mode .autoplay-meta {
+    font-size: 0.82rem;
   }
 }

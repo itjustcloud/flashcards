@@ -4,7 +4,7 @@ import type { Card, Deck, DisplayMode, LanguageMode, OrderMode } from './types';
 import { buildQueue, clampIndex, nextIndex, prevIndex, progressLabel } from './utils/queue';
 import { isImportPayload, loadAppState, mergeDecks, saveAppState } from './utils/storage';
 
-const AUTOPLAY_MS = 3000;
+const DEFAULT_AUTOPLAY_INTERVAL_SEC = 3;
 const ACTIVE_TAB_STORAGE_KEY = 'flashcards.ui.activeTab.v1';
 
 type AppTab = 'play' | 'manage';
@@ -36,6 +36,7 @@ export default function App() {
   const [orderMode, setOrderMode] = useState<OrderMode>('sequential');
   const [shuffleMode, setShuffleMode] = useState(false);
   const [autoplay, setAutoplay] = useState(false);
+  const [autoplayIntervalSec, setAutoplayIntervalSec] = useState<number>(DEFAULT_AUTOPLAY_INTERVAL_SEC);
   const [showAnswer, setShowAnswer] = useState(false);
   const [queueIndex, setQueueIndex] = useState(0);
   const [deckNameInput, setDeckNameInput] = useState('');
@@ -113,9 +114,9 @@ export default function App() {
     const id = window.setInterval(() => {
       setQueueIndex((current) => nextIndex(current, queue.length));
       setShowAnswer(false);
-    }, AUTOPLAY_MS);
+    }, autoplayIntervalSec * 1000);
     return () => window.clearInterval(id);
-  }, [autoplay, queue.length]);
+  }, [autoplay, autoplayIntervalSec, queue.length]);
 
   const updateDecks = (updater: (decks: Deck[]) => Deck[], selectedDeckId?: string | null) => {
     setState((current) => {
@@ -479,8 +480,9 @@ export default function App() {
               aria-label={autoplay ? '자동재생 정지' : '자동재생 시작'}
             >
               <span className="autoplay-state">{autoplay ? '■ 정지' : '▶ 자동재생 시작'}</span>
-              <span className="autoplay-meta">{autoplay ? '재생 중' : `${AUTOPLAY_MS / 1000}초 간격`}</span>
-              <kbd className="key-hint">P</kbd>
+              <span className="autoplay-meta">
+                {autoplay ? '재생 중' : `${autoplayIntervalSec}초 간격 · 단축키 P`}
+              </span>
             </button>
           </div>
 
@@ -583,11 +585,26 @@ export default function App() {
                     <span>셔플 {shuffleMode ? 'ON' : 'OFF'}</span>
                   </button>
                 </div>
+
+                <div className="interval-options" role="group" aria-label="자동재생 간격">
+                  <span className="interval-label">자동재생 간격</span>
+                  {[3, 5, 7].map((sec) => (
+                    <button
+                      key={sec}
+                      type="button"
+                      className={`interval-chip${autoplayIntervalSec === sec ? ' active' : ''}`}
+                      onClick={() => setAutoplayIntervalSec(sec)}
+                      aria-pressed={autoplayIntervalSec === sec}
+                    >
+                      {sec}초
+                    </button>
+                  ))}
+                </div>
               </section>
             </div>
           )}
 
-          <p className="shortcut-help">⌨ ←/→ 이동 · Space 뒤집기 · P 자동재생 · F 전체화면 · Esc 종료</p>
+          <p className="shortcut-help">⌨ ←/→ 이동 · Space 뒤집기 · P 자동재생 토글 · F 전체화면 · Esc 종료</p>
         </section>
       )}
 
