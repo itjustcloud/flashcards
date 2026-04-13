@@ -436,6 +436,12 @@ export default function App() {
 
       {activeTab === 'play' && (
         <section className="panel hero-panel" ref={slideRef} aria-label="슬라이드쇼 영역">
+          {autoplay && queue.length > 0 && (
+            <div className="fullscreen-timebar" aria-hidden>
+              <span className="autoplay-timer-fill" style={{ transform: `scaleX(${autoplayRemainRatio})` }} />
+            </div>
+          )}
+
           <div className="slide-stage" aria-live="polite">
             {!activeCard && <p className="empty-slide">카드를 추가하면 슬라이드가 시작됩니다.</p>}
             {activeCard && (

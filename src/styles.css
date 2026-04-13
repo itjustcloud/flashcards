@@ -376,6 +376,10 @@ button:active:not(:disabled) {
   background: color-mix(in srgb, var(--surface) 80%, var(--accent));
 }
 
+.fullscreen-timebar {
+  display: none;
+}
+
 .autoplay-timer-fill {
   display: block;
   height: 100%;
@@ -821,6 +825,49 @@ button:active:not(:disabled) {
   overflow: hidden;
   clip: rect(0, 0, 0, 0);
   border: 0;
+}
+
+@media (min-width: 1024px) {
+  .hero-panel:fullscreen {
+    padding: 18px 28px;
+    background: var(--bg);
+  }
+
+  .hero-panel:fullscreen .thumb-controls,
+  .hero-panel:fullscreen .control-strip,
+  .hero-panel:fullscreen .deck-selector,
+  .hero-panel:fullscreen .shortcut-help,
+  .hero-panel:fullscreen .autoplay-timer,
+  .hero-panel:fullscreen .progress-wrap {
+    display: none;
+  }
+
+  .hero-panel:fullscreen .fullscreen-timebar {
+    display: block;
+    height: 5px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: color-mix(in srgb, var(--surface) 80%, var(--accent));
+    margin-bottom: 12px;
+  }
+
+  .hero-panel:fullscreen .slide-stage {
+    min-height: calc(100vh - 70px);
+    border: none;
+    background: transparent;
+    padding: 0;
+  }
+
+  .hero-panel:fullscreen .slide-main {
+    font-size: clamp(5rem, 13vw, 11rem);
+    line-height: 1.05;
+    max-width: 90vw;
+  }
+
+  .hero-panel:fullscreen .slide-sub {
+    font-size: clamp(2rem, 4vw, 3rem);
+    margin-top: 22px;
+  }
 }
 
 @media (max-width: 720px) {
