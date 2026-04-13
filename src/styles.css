@@ -483,9 +483,82 @@ button:active:not(:disabled) {
   margin-top: 12px;
 }
 
+.manage-summary-panel {
+  border-width: 2px;
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--surface) 92%, var(--accent)),
+    color-mix(in srgb, var(--surface) 98%, var(--accent))
+  );
+}
+
+.manage-summary-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.manage-summary-head h2 {
+  margin: 2px 0 0;
+  font-size: clamp(1.05rem, 2.7vw, 1.35rem);
+}
+
+.manage-summary-label {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.manage-summary-stats {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.stat-tile {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px;
+  background: color-mix(in srgb, var(--surface) 92%, var(--accent));
+}
+
+.stat-label {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.stat-tile strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 1.22rem;
+  line-height: 1;
+}
+
+.deck-manage-body {
+  display: grid;
+  gap: 12px;
+}
+
+.manage-group {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px;
+  background: color-mix(in srgb, var(--surface) 95%, var(--accent));
+}
+
+.group-label {
+  margin: 0 0 8px;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
 .quick-add-row {
   display: grid;
-  grid-template-columns: 1fr 1fr auto;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto auto;
   gap: 8px;
   align-items: center;
 }
@@ -494,17 +567,86 @@ button:active:not(:disabled) {
   min-width: 0;
 }
 
-.cards-list {
-  display: grid;
+.helper-text {
+  margin: 8px 2px 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.cards-toolbar {
+  margin-top: 12px;
+  display: flex;
   gap: 8px;
-  overflow-x: auto;
+  align-items: center;
+}
+
+.cards-toolbar input {
+  flex: 1;
+}
+
+.cards-table-wrap {
+  margin-top: 8px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--surface) 97%, var(--accent));
+}
+
+.cards-table-head {
+  display: grid;
+  grid-template-columns: minmax(190px, 1fr) minmax(190px, 1fr) 68px;
+  gap: 8px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 10px 10px 8px;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface) 88%, var(--accent));
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.actions-head {
+  text-align: center;
+}
+
+.cards-table-body {
+  max-height: min(52vh, 440px);
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.cards-table-body .card-edit-row:first-child {
+  border-top: none;
 }
 
 .card-edit-row {
   display: grid;
-  grid-template-columns: 1fr 1fr auto;
+  grid-template-columns: minmax(190px, 1fr) minmax(190px, 1fr) 68px;
   gap: 8px;
-  min-width: 420px;
+  align-items: center;
+  padding: 8px 10px;
+  border-top: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+}
+
+.delete-icon-button {
+  min-height: 38px;
+  padding: 0;
+  width: 100%;
+  font-size: 0.78rem;
+  border-radius: 8px;
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 45%, var(--border));
+  background: color-mix(in srgb, var(--surface) 95%, var(--danger));
+}
+
+.empty-state {
+  margin: 0;
+  padding: 16px 12px;
+  color: var(--muted);
+  text-align: center;
 }
 
 .status {
@@ -567,16 +709,46 @@ button:active:not(:disabled) {
     min-height: 48px;
   }
 
+  .manage-summary-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .manage-summary-stats .stat-tile:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .cards-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
   .quick-add-row {
-    grid-template-columns: 1fr 1fr auto;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
   }
 
   .quick-add-row button {
-    white-space: nowrap;
+    min-height: 42px;
+  }
+
+  .cards-table-head {
+    position: sticky;
+    top: 0;
+    z-index: 1;
   }
 
   .card-edit-row {
-    min-width: 520px;
+    grid-template-columns: 1fr 1fr 58px;
+    padding: 8px;
+  }
+
+  .cards-table-head {
+    grid-template-columns: 1fr 1fr 58px;
+    padding: 8px;
+  }
+
+  .cards-table-body {
+    max-height: min(50vh, 360px);
   }
 }
 
