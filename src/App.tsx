@@ -461,13 +461,13 @@ export default function App() {
             </button>
             <button
               type="button"
-              className={`autoplay-cta inline${autoplay ? ' running' : ''}`}
+              className={`icon-button autoplay-toggle${autoplay ? ' running' : ''}`}
               onClick={() => setAutoplay((current) => !current)}
               disabled={queue.length === 0}
-              aria-label={autoplay ? '자동재생 정지' : '자동재생 시작'}
+              aria-label={autoplay ? '자동재생 정지 (단축키 P)' : '자동재생 시작 (단축키 P)'}
+              title={autoplay ? '자동재생 정지 (P)' : '자동재생 시작 (P)'}
             >
-              <span className="autoplay-state">{autoplay ? '■ 정지' : '▶ 자동재생 시작'}</span>
-              <span className="autoplay-meta">{autoplay ? '재생 중' : `${autoplayIntervalSec}초 · P`}</span>
+              {autoplay ? '■' : '▶'}
             </button>
             <button
               type="button"

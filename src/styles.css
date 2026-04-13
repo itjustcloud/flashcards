@@ -337,7 +337,7 @@ button:active:not(:disabled) {
 .control-strip {
   margin-top: 10px;
   display: grid;
-  grid-template-columns: minmax(86px, 0.9fr) minmax(190px, 1.7fr) 52px;
+  grid-template-columns: minmax(110px, 1fr) 52px 52px;
   gap: 8px;
   width: 100%;
   align-items: stretch;
@@ -350,14 +350,9 @@ button:active:not(:disabled) {
   font-weight: 600;
 }
 
-.autoplay-cta {
-  width: 100%;
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1px;
-  align-items: center;
-  text-align: left;
-  padding: 8px 14px;
+.autoplay-toggle {
+  font-size: 28px;
+  font-weight: 900;
   border-width: 2px;
   border-color: color-mix(in srgb, var(--accent) 68%, var(--border));
   background: linear-gradient(
@@ -365,27 +360,11 @@ button:active:not(:disabled) {
     color-mix(in srgb, var(--accent) 14%, var(--surface)),
     color-mix(in srgb, var(--accent) 6%, var(--surface))
   );
-  border-radius: 14px;
 }
 
-.autoplay-cta.inline {
-  min-height: 52px;
-}
-
-.autoplay-cta.running {
+.autoplay-toggle.running {
   border-color: color-mix(in srgb, var(--danger) 65%, var(--border));
   background: color-mix(in srgb, var(--danger) 8%, var(--surface));
-}
-
-.autoplay-state {
-  font-size: 1.02rem;
-  font-weight: 800;
-  letter-spacing: -0.01em;
-}
-
-.autoplay-meta {
-  font-size: 0.82rem;
-  color: var(--muted);
 }
 
 .shortcut-help {
@@ -557,7 +536,7 @@ button:active:not(:disabled) {
   }
 
   .control-strip {
-    grid-template-columns: minmax(78px, 0.85fr) minmax(160px, 1.55fr) 48px;
+    grid-template-columns: minmax(78px, 1fr) 48px 48px;
     gap: 6px;
   }
 
@@ -566,9 +545,8 @@ button:active:not(:disabled) {
     height: 48px;
   }
 
-  .autoplay-cta.inline {
-    min-height: 48px;
-    padding: 6px 10px;
+  .autoplay-toggle {
+    font-size: 24px;
   }
 
   .sheet-open-button {
@@ -594,8 +572,8 @@ button:active:not(:disabled) {
     padding: 12px;
   }
 
-  .focus-mode .autoplay-cta {
-    padding: 10px 12px;
+  .focus-mode .autoplay-toggle {
+    font-size: 22px;
   }
 
   .focus-mode .shortcut-help {
