@@ -44,6 +44,9 @@ export default function App() {
   const [cardFrontInput, setCardFrontInput] = useState('');
   const [cardBackInput, setCardBackInput] = useState('');
   const [cardFilterQuery, setCardFilterQuery] = useState('');
+  const [editingCardId, setEditingCardId] = useState<string | null>(null);
+  const [editFrontInput, setEditFrontInput] = useState('');
+  const [editBackInput, setEditBackInput] = useState('');
   const [importMode, setImportMode] = useState<'merge' | 'overwrite'>('merge');
   const [statusMessage, setStatusMessage] = useState('');
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -128,6 +131,9 @@ export default function App() {
 
   useEffect(() => {
     setCardFilterQuery('');
+    setEditingCardId(null);
+    setEditFrontInput('');
+    setEditBackInput('');
   }, [selectedDeck?.id]);
 
   useEffect(() => {
@@ -266,18 +272,39 @@ export default function App() {
     window.setTimeout(() => frontInputRef.current?.focus(), 0);
   };
 
-  const updateCard = (cardId: string, key: 'front' | 'back', value: string) => {
-    if (!selectedDeck) return;
+  const startEditCard = (card: Card) => {
+    setEditingCardId(card.id);
+    setEditFrontInput(card.front);
+    setEditBackInput(card.back);
+  };
+
+  const cancelEditCard = () => {
+    setEditingCardId(null);
+    setEditFrontInput('');
+    setEditBackInput('');
+  };
+
+  const saveEditCard = () => {
+    if (!selectedDeck || !editingCardId) return;
+    const front = editFrontInput.trim();
+    const back = editBackInput.trim();
+    if (!front || !back) return;
+
     updateDecks((decks) =>
       decks.map((deck) => {
         if (deck.id !== selectedDeck.id) return deck;
         return {
           ...deck,
           updatedAt: nowIso(),
-          cards: deck.cards.map((card) => (card.id === cardId ? { ...card, [key]: value } : card))
+          cards: deck.cards.map((card) =>
+            card.id === editingCardId ? { ...card, front, back } : card
+          )
         };
       })
     );
+
+    setStatusMessage('카드가 수정되었습니다.');
+    cancelEditCard();
   };
 
   const deleteCard = (cardId: string) => {
@@ -453,7 +480,7 @@ export default function App() {
             onClick={() => setActiveTab('manage')}
             aria-pressed={activeTab === 'manage'}
           >
-            관리
+            설정
           </button>
         </nav>
       </header>
@@ -672,12 +699,12 @@ export default function App() {
               </div>
               <span className="badge">{state.decks.length}개 덱</span>
             </div>
-            <div className="deck-shelf" role="listbox" aria-label="덱 카드 선택">
+            <div className="deck-list" role="listbox" aria-label="덱 목록 선택">
               {state.decks.map((deck) => (
                 <button
                   key={deck.id}
                   type="button"
-                  className={`deck-poster${deck.id === state.selectedDeckId ? ' active' : ''}`}
+                  className={`deck-list-item${deck.id === state.selectedDeckId ? ' active' : ''}`}
                   onClick={() => setSelectedDeck(deck.id)}
                   aria-selected={deck.id === state.selectedDeckId}
                 >
@@ -810,33 +837,47 @@ export default function App() {
                   </div>
 
                   <div className="cards-table-wrap">
-                    <div className="cards-table-head" aria-hidden>
-                      <span>앞면</span>
-                      <span>뒷면</span>
-                      <span className="actions-head">삭제</span>
-                    </div>
-                    <div className="cards-table-body">
+                    {editingCardId && (
+                      <div className="edit-card-panel">
+                        <p className="group-label">선택 카드 수정</p>
+                        <div className="row wrap">
+                          <input
+                            aria-label="수정 앞면"
+                            value={editFrontInput}
+                            onChange={(event) => setEditFrontInput(event.target.value)}
+                          />
+                          <input
+                            aria-label="수정 뒷면"
+                            value={editBackInput}
+                            onChange={(event) => setEditBackInput(event.target.value)}
+                          />
+                        </div>
+                        <div className="row wrap">
+                          <button onClick={saveEditCard}>저장</button>
+                          <button type="button" onClick={cancelEditCard}>취소</button>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="cards-table-body list-mode">
                       {filteredCards.length > 0 ? (
                         filteredCards.map((card) => (
-                          <div key={card.id} className="card-edit-row">
-                            <input
-                              aria-label="카드 앞면"
-                              value={card.front}
-                              onChange={(event) => updateCard(card.id, 'front', event.target.value)}
-                            />
-                            <input
-                              aria-label="카드 뒷면"
-                              value={card.back}
-                              onChange={(event) => updateCard(card.id, 'back', event.target.value)}
-                            />
-                            <button
-                              className="delete-icon-button"
-                              onClick={() => deleteCard(card.id)}
-                              aria-label="카드 삭제"
-                              title="카드 삭제"
-                            >
-                              삭제
-                            </button>
+                          <div key={card.id} className="card-list-item">
+                            <div className="card-text">
+                              <strong>{card.front}</strong>
+                              <span>{card.back}</span>
+                            </div>
+                            <div className="card-actions">
+                              <button type="button" onClick={() => startEditCard(card)}>수정</button>
+                              <button
+                                className="delete-icon-button"
+                                onClick={() => deleteCard(card.id)}
+                                aria-label="카드 삭제"
+                                title="카드 삭제"
+                              >
+                                삭제
+                              </button>
+                            </div>
                           </div>
                         ))
                       ) : (
