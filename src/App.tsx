@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
+import { Maximize2, Minimize2, Pause, Play, Settings2 } from 'lucide-react';
 import type { Card, Deck, DisplayMode, LanguageMode, OrderMode } from './types';
 import { buildQueue, clampIndex, nextIndex, prevIndex, progressLabel } from './utils/queue';
 import { isImportPayload, loadAppState, mergeDecks, saveAppState } from './utils/storage';
@@ -380,7 +381,6 @@ export default function App() {
   const secondaryText = displayMode === 'front-only' && showAnswer ? answerText : '';
 
   const fullscreenAriaLabel = isFullscreen || isFocusMode ? '포커스 모드 또는 전체화면 종료' : '포커스 모드 또는 전체화면 시작';
-  const fullscreenIcon = isFullscreen || isFocusMode ? '✕' : '⛶';
   const currentProgress = queue.length === 0 ? 0 : clampIndex(queueIndex, queue.length) + 1;
   const progressPercent = queue.length === 0 ? 0 : (currentProgress / queue.length) * 100;
 
@@ -456,8 +456,10 @@ export default function App() {
               type="button"
               className="sheet-open-button"
               onClick={() => setIsOptionsSheetOpen(true)}
+              aria-label="옵션 열기"
             >
-              옵션
+              <Settings2 size={16} />
+              <span>옵션</span>
             </button>
             <button
               type="button"
@@ -467,7 +469,7 @@ export default function App() {
               aria-label={autoplay ? '자동재생 정지 (단축키 P)' : '자동재생 시작 (단축키 P)'}
               title={autoplay ? '자동재생 정지 (P)' : '자동재생 시작 (P)'}
             >
-              {autoplay ? '■' : '▶'}
+              {autoplay ? <Pause size={18} strokeWidth={2.4} /> : <Play size={18} strokeWidth={2.4} />}
             </button>
             <button
               type="button"
@@ -477,7 +479,7 @@ export default function App() {
               aria-label={fullscreenAriaLabel}
               title={fullscreenAriaLabel}
             >
-              {fullscreenIcon}
+              {isFullscreen || isFocusMode ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
             </button>
           </div>
 

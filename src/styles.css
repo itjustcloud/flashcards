@@ -159,12 +159,11 @@ button:hover:not(:disabled) {
 }
 
 .icon-button {
-  width: 52px;
-  height: 52px;
+  width: 48px;
+  height: 48px;
   border-radius: 12px;
   display: grid;
   place-items: center;
-  font-size: 24px;
   line-height: 1;
   border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
   background: color-mix(in srgb, var(--surface) 92%, var(--accent));
@@ -348,11 +347,13 @@ button:active:not(:disabled) {
   border-radius: 12px;
   background: color-mix(in srgb, var(--surface) 92%, var(--accent));
   font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 
 .autoplay-toggle {
-  font-size: 28px;
-  font-weight: 900;
   border-width: 2px;
   border-color: color-mix(in srgb, var(--accent) 68%, var(--border));
   background: linear-gradient(
@@ -541,12 +542,8 @@ button:active:not(:disabled) {
   }
 
   .icon-button {
-    width: 48px;
-    height: 48px;
-  }
-
-  .autoplay-toggle {
-    font-size: 24px;
+    width: 46px;
+    height: 46px;
   }
 
   .sheet-open-button {
@@ -573,7 +570,7 @@ button:active:not(:disabled) {
   }
 
   .focus-mode .autoplay-toggle {
-    font-size: 22px;
+    border-width: 2px;
   }
 
   .focus-mode .shortcut-help {
