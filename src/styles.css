@@ -676,7 +676,10 @@ button:active:not(:disabled) {
 
 .card-actions button {
   min-height: 34px;
-  padding: 4px 10px;
+  padding: 4px 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .delete-icon-button {
@@ -700,6 +703,47 @@ button:active:not(:disabled) {
 .status {
   color: var(--accent);
   font-weight: 600;
+}
+
+.simple-mode-switch {
+  display: inline-flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.mode-chip {
+  min-height: 34px;
+  padding: 6px 12px;
+  border-radius: 999px;
+}
+
+.mode-chip.active {
+  border-color: color-mix(in srgb, var(--accent) 65%, var(--border));
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+  color: var(--accent-strong);
+}
+
+.simple-io-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.simple-io-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
 }
 
 @media (max-width: 720px) {
@@ -759,6 +803,10 @@ button:active:not(:disabled) {
 
   .deck-list {
     gap: 6px;
+  }
+
+  .deck-list-item {
+    min-height: 60px;
   }
 
   .manage-summary-stats {

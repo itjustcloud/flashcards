@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
-import { Maximize2, Minimize2, Pause, Play, Settings2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, Download, Maximize2, Minimize2, Pause, Play, Plus, Settings2, Upload } from 'lucide-react';
 import type { Card, Deck, DisplayMode, LanguageMode, OrderMode } from './types';
 import { buildQueue, clampIndex, nextIndex, prevIndex, progressLabel } from './utils/queue';
 import { isImportPayload, loadAppState, mergeDecks, saveAppState } from './utils/storage';
@@ -40,7 +40,6 @@ export default function App() {
   const [autoplayIntervalSec, setAutoplayIntervalSec] = useState<number>(DEFAULT_AUTOPLAY_INTERVAL_SEC);
   const [showAnswer, setShowAnswer] = useState(false);
   const [queueIndex, setQueueIndex] = useState(0);
-  const [deckNameInput, setDeckNameInput] = useState('');
   const [cardFrontInput, setCardFrontInput] = useState('');
   const [cardBackInput, setCardBackInput] = useState('');
   const [cardFilterQuery, setCardFilterQuery] = useState('');
@@ -56,6 +55,7 @@ export default function App() {
   const slideRef = useRef<HTMLDivElement | null>(null);
   const frontInputRef = useRef<HTMLInputElement | null>(null);
   const backInputRef = useRef<HTMLInputElement | null>(null);
+  const importFileInputRef = useRef<HTMLInputElement | null>(null);
   const autoplayCycleStartRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -103,10 +103,6 @@ export default function App() {
   const selectedDeck = useMemo(
     () => state.decks.find((deck) => deck.id === state.selectedDeckId) ?? null,
     [state.decks, state.selectedDeckId]
-  );
-  const totalCardCount = useMemo(
-    () => state.decks.reduce((sum, deck) => sum + deck.cards.length, 0),
-    [state.decks]
   );
   const filteredCards = useMemo(() => {
     if (!selectedDeck) return [];
@@ -189,8 +185,8 @@ export default function App() {
     setAutoplay(false);
   };
 
-  const createDeck = () => {
-    const name = deckNameInput.trim();
+  const createDeckByName = (rawName: string) => {
+    const name = rawName.trim();
     if (!name) return;
     const timestamp = nowIso();
     const deck: Deck = {
@@ -201,8 +197,12 @@ export default function App() {
       updatedAt: timestamp
     };
     updateDecks((decks) => [...decks, deck], deck.id);
-    setDeckNameInput('');
     setStatusMessage('덱이 생성되었습니다.');
+  };
+  const createDeckFromHeader = () => {
+    const name = window.prompt('새 덱 이름을 입력하세요');
+    if (!name) return;
+    createDeckByName(name);
   };
 
   const renameDeck = (name: string) => {
@@ -321,6 +321,27 @@ export default function App() {
       )
     );
     setStatusMessage('카드가 삭제되었습니다.');
+  };
+
+  const moveCard = (cardId: string, direction: 'up' | 'down') => {
+    if (!selectedDeck) return;
+    updateDecks((decks) =>
+      decks.map((deck) => {
+        if (deck.id !== selectedDeck.id) return deck;
+        const index = deck.cards.findIndex((card) => card.id === cardId);
+        if (index < 0) return deck;
+        const target = direction === 'up' ? index - 1 : index + 1;
+        if (target < 0 || target >= deck.cards.length) return deck;
+        const cards = [...deck.cards];
+        const [picked] = cards.splice(index, 1);
+        cards.splice(target, 0, picked);
+        return {
+          ...deck,
+          updatedAt: nowIso(),
+          cards
+        };
+      })
+    );
   };
 
   const setTheme = (theme: 'light' | 'dark' | 'system') => {
@@ -695,9 +716,11 @@ export default function App() {
             <div className="manage-summary-head">
               <div>
                 <p className="manage-summary-label">Step 1</p>
-                <h2>먼저 덱을 선택하세요</h2>
+                <h2>덱 선택</h2>
               </div>
-              <span className="badge">{state.decks.length}개 덱</span>
+              <button type="button" className="icon-button" onClick={createDeckFromHeader} aria-label="덱 추가" title="덱 추가">
+                <Plus size={18} />
+              </button>
             </div>
             <div className="deck-list" role="listbox" aria-label="덱 목록 선택">
               {state.decks.map((deck) => (
@@ -715,75 +738,26 @@ export default function App() {
             </div>
           </section>
 
-          <section className="panel manage-summary-panel" aria-label="선택된 덱 요약">
-            <div className="manage-summary-head">
-              <div>
-                <p className="manage-summary-label">현재 선택된 덱</p>
-                <h2>{selectedDeck?.name ?? '덱을 선택해 주세요'}</h2>
-              </div>
-              <span className="badge">{selectedDeck ? `${selectedDeck.cards.length}단어` : '덱 없음'}</span>
-            </div>
-            <div className="manage-summary-stats">
-              <div className="stat-tile">
-                <span className="stat-label">전체 덱</span>
-                <strong>{state.decks.length}</strong>
-              </div>
-              <div className="stat-tile">
-                <span className="stat-label">전체 카드</span>
-                <strong>{totalCardCount}</strong>
-              </div>
-              <div className="stat-tile">
-                <span className="stat-label">현재 필터 결과</span>
-                <strong>{selectedDeck ? filteredCards.length : 0}</strong>
-              </div>
-            </div>
-          </section>
-
           <section className="panel advanced-panel">
-            <h2>덱 관리</h2>
+            <h2>덱 설정</h2>
             <div className="panel-body deck-manage-body">
               <div className="manage-group">
-                <p className="group-label">새 덱 만들기</p>
-                <div className="row wrap">
-                  <input
-                    placeholder="새 덱 이름"
-                    value={deckNameInput}
-                    onChange={(event) => setDeckNameInput(event.target.value)}
-                  />
-                  <button onClick={createDeck}>덱 생성</button>
-                </div>
-              </div>
-
-              <div className="manage-group">
-                <p className="group-label">선택 및 수정</p>
-                <div className="row wrap">
-                  <select
-                    aria-label="관리용 덱 선택"
-                    value={state.selectedDeckId ?? ''}
-                    onChange={(event) => setSelectedDeck(event.target.value || null)}
-                  >
-                    <option value="">덱 선택</option>
-                    {state.decks.map((deck) => (
-                      <option key={deck.id} value={deck.id}>
-                        {deck.name} ({deck.cards.length}단어)
-                      </option>
-                    ))}
-                  </select>
-                  <button onClick={deleteDeck} disabled={!selectedDeck}>
-                    덱 삭제
-                  </button>
-                </div>
-
+                <p className="group-label">덱 이름 변경 / 삭제</p>
                 {selectedDeck && (
-                  <div className="row wrap">
-                    <input
-                      aria-label="선택된 덱 이름"
-                      value={selectedDeck.name}
-                      onChange={(event) => renameDeck(event.target.value)}
-                    />
-                  </div>
+                  <>
+                    <div className="row wrap">
+                      <input
+                        aria-label="선택된 덱 이름"
+                        value={selectedDeck.name}
+                        onChange={(event) => renameDeck(event.target.value)}
+                      />
+                    </div>
+                    <div className="row wrap">
+                      <button onClick={deleteDeck}>이 덱 삭제</button>
+                    </div>
+                  </>
                 )}
-                {!selectedDeck && <p className="helper-text">수정하거나 카드를 추가하려면 먼저 덱을 선택하세요.</p>}
+                {!selectedDeck && <p className="helper-text">위 덱 목록에서 먼저 덱을 선택하세요.</p>}
               </div>
             </div>
           </section>
@@ -868,6 +842,24 @@ export default function App() {
                               <span>{card.back}</span>
                             </div>
                             <div className="card-actions">
+                              <button
+                                type="button"
+                                onClick={() => moveCard(card.id, 'up')}
+                                disabled={selectedDeck.cards.findIndex((c) => c.id === card.id) === 0}
+                                aria-label="위로 이동"
+                                title="위로 이동"
+                              >
+                                <ArrowUp size={14} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => moveCard(card.id, 'down')}
+                                disabled={selectedDeck.cards.findIndex((c) => c.id === card.id) === selectedDeck.cards.length - 1}
+                                aria-label="아래로 이동"
+                                title="아래로 이동"
+                              >
+                                <ArrowDown size={14} />
+                              </button>
                               <button type="button" onClick={() => startEditCard(card)}>수정</button>
                               <button
                                 className="delete-icon-button"
@@ -897,31 +889,36 @@ export default function App() {
           <section className="panel advanced-panel">
             <h2>가져오기/내보내기</h2>
             <div className="panel-body">
-              <div className="row wrap">
-                <label>
-                  <input
-                    type="radio"
-                    name="import-mode"
-                    checked={importMode === 'merge'}
-                    onChange={() => setImportMode('merge')}
-                  />
+              <div className="simple-mode-switch" role="group" aria-label="가져오기 방식">
+                <button
+                  type="button"
+                  className={`mode-chip${importMode === 'merge' ? ' active' : ''}`}
+                  onClick={() => setImportMode('merge')}
+                >
                   병합
-                </label>
-                <label>
-                  <input
-                    type="radio"
-                    name="import-mode"
-                    checked={importMode === 'overwrite'}
-                    onChange={() => setImportMode('overwrite')}
-                  />
+                </button>
+                <button
+                  type="button"
+                  className={`mode-chip${importMode === 'overwrite' ? ' active' : ''}`}
+                  onClick={() => setImportMode('overwrite')}
+                >
                   덮어쓰기
-                </label>
+                </button>
+              </div>
+              <div className="simple-io-actions">
+                <button type="button" onClick={() => importFileInputRef.current?.click()}>
+                  <Upload size={16} /> 파일 가져오기
+                </button>
+                <button type="button" onClick={exportJson}>
+                  <Download size={16} /> JSON 내보내기
+                </button>
                 <input
+                  ref={importFileInputRef}
                   type="file"
                   accept="application/json"
+                  className="visually-hidden"
                   onChange={(event) => void importJson(event.target.files?.[0] ?? null)}
                 />
-                <button onClick={exportJson}>JSON 내보내기</button>
               </div>
             </div>
           </section>
