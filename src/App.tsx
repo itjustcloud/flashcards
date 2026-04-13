@@ -203,15 +203,6 @@ export default function App() {
     setStatusMessage('덱 이름이 변경되었습니다.');
   };
 
-  const renameDeck = (name: string) => {
-    if (!selectedDeck) return;
-    updateDecks((decks) =>
-      decks.map((deck) =>
-        deck.id === selectedDeck.id ? { ...deck, name, updatedAt: nowIso() } : deck
-      )
-    );
-  };
-
   const deleteDeckById = (deckId: string) => {
     const deck = state.decks.find((item) => item.id === deckId);
     if (!deck) return;
@@ -692,27 +683,6 @@ export default function App() {
                 </div>
               </div>
               ))}
-            </div>
-          </section>
-
-          <section className="panel advanced-panel">
-            <h2>덱 설정</h2>
-            <div className="panel-body deck-manage-body">
-              {selectedDeck ? (
-                <div className="manage-group">
-                  <p className="group-label">선택된 덱 이름 변경</p>
-                  <div className="row wrap">
-                    <input
-                      aria-label="선택된 덱 이름"
-                      value={selectedDeck.name}
-                      onChange={(event) => renameDeck(event.target.value)}
-                    />
-                  </div>
-                  <p className="helper-text">삭제는 덱 목록 항목의 ... 메뉴에서 할 수 있어요.</p>
-                </div>
-              ) : (
-                <p className="empty-state">먼저 덱을 선택해 주세요.</p>
-              )}
             </div>
           </section>
 
