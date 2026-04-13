@@ -46,14 +46,9 @@ body.app-scroll-lock {
 
 .topbar {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
-  gap: 12px;
   margin-bottom: 12px;
-}
-
-.app-title {
-  margin: 0;
 }
 
 .top-tabs {
@@ -134,11 +129,13 @@ body.app-scroll-lock {
 input,
 select,
 button {
-  padding: 8px 10px;
+  min-height: 44px;
+  padding: 10px 12px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--surface);
   color: var(--text);
+  transition: border-color 0.15s ease, transform 0.08s ease, filter 0.08s ease;
 }
 
 button {
@@ -152,17 +149,6 @@ button:disabled {
 
 button:hover:not(:disabled) {
   border-color: var(--accent);
-}
-
-.slideshow-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.slideshow-header h2 {
-  margin: 0;
 }
 
 .header-actions {
@@ -180,6 +166,12 @@ button:hover:not(:disabled) {
   font-size: 22px;
   line-height: 1;
   border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  padding: 0;
+}
+
+button:active:not(:disabled) {
+  transform: scale(0.98);
+  filter: brightness(0.96);
 }
 
 .badge {
@@ -191,8 +183,8 @@ button:hover:not(:disabled) {
 }
 
 .deck-selector {
-  margin-top: 6px;
-  margin-bottom: 12px;
+  margin-top: 12px;
+  margin-bottom: 0;
   background: color-mix(in srgb, var(--surface) 80%, var(--accent));
 }
 
@@ -209,22 +201,6 @@ button:hover:not(:disabled) {
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--muted);
-}
-
-.deck-current {
-  margin: 8px 0 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.deck-current strong {
-  font-size: 1.08rem;
-}
-
-.deck-current span {
-  color: var(--muted);
-  font-size: 0.92rem;
 }
 
 .deck-selector-controls {
@@ -257,9 +233,8 @@ button:hover:not(:disabled) {
 
 .slide-options {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 8px;
-  margin-bottom: 10px;
 }
 
 .option-toggle {
@@ -281,7 +256,7 @@ button:hover:not(:disabled) {
 }
 
 .slide-stage {
-  min-height: 320px;
+  min-height: min(46vh, 340px);
   border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--border));
   border-radius: 16px;
   display: grid;
@@ -319,6 +294,36 @@ button:hover:not(:disabled) {
   margin: 0;
 }
 
+.progress-wrap {
+  margin-top: 10px;
+}
+
+.progress-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+
+.progress-track {
+  margin-top: 6px;
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--surface) 74%, var(--accent));
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border));
+}
+
+.progress-fill {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 70%, var(--accent-strong)));
+  transition: width 0.2s ease;
+}
+
 .thumb-controls {
   display: grid;
   gap: 8px;
@@ -328,6 +333,14 @@ button:hover:not(:disabled) {
 
 .playback-row {
   margin-top: 10px;
+}
+
+.header-actions.compact {
+  margin-top: 10px;
+}
+
+.header-actions.compact .sheet-open-button {
+  flex: 1;
 }
 
 .autoplay-cta {
@@ -377,6 +390,63 @@ button:hover:not(:disabled) {
   font-size: 12px;
 }
 
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 32;
+  background: color-mix(in srgb, var(--text) 30%, transparent);
+  display: flex;
+  align-items: flex-end;
+  animation: sheet-fade-in 0.18s ease;
+}
+
+.settings-sheet {
+  width: 100%;
+  background: var(--surface);
+  border-radius: 18px 18px 0 0;
+  border-top: 1px solid var(--border);
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  padding: 14px 12px calc(14px + env(safe-area-inset-bottom));
+  animation: sheet-slide-up 0.2s ease;
+}
+
+.settings-sheet-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.settings-sheet-head h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.icon-button.close {
+  width: 38px;
+  height: 38px;
+  font-size: 18px;
+}
+
+@keyframes sheet-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes sheet-slide-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
 .advanced-panel h2 {
   margin: 0;
   font-size: 1rem;
@@ -421,8 +491,7 @@ button:hover:not(:disabled) {
   }
 
   .topbar {
-    flex-direction: column;
-    align-items: stretch;
+    justify-content: center;
   }
 
   .top-tabs {
@@ -432,10 +501,6 @@ button:hover:not(:disabled) {
   .hero-panel {
     position: static;
     padding: 12px;
-  }
-
-  .slide-options {
-    grid-template-columns: 1fr;
   }
 
   .slide-stage {
@@ -453,8 +518,7 @@ button:hover:not(:disabled) {
   }
 
   .deck-selector-head {
-    align-items: flex-start;
-    flex-direction: column;
+    align-items: center;
   }
 
   .shortcut-help {
