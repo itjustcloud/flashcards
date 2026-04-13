@@ -218,15 +218,28 @@ button:hover {
   margin-top: 12px;
 }
 
+.quick-add-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.quick-add-row input {
+  min-width: 0;
+}
+
 .cards-list {
   display: grid;
   gap: 8px;
+  overflow-x: auto;
 }
 
 .card-edit-row {
   display: grid;
   grid-template-columns: 1fr 1fr auto;
   gap: 8px;
+  min-width: 420px;
 }
 
 .advanced-panels h2 {
@@ -281,8 +294,16 @@ button:hover {
     margin-top: 8px;
   }
 
+  .quick-add-row {
+    grid-template-columns: 1fr 1fr auto;
+  }
+
+  .quick-add-row button {
+    white-space: nowrap;
+  }
+
   .card-edit-row {
-    grid-template-columns: 1fr;
+    min-width: 520px;
   }
 }
 

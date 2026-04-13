@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import type { Card, Deck, DisplayMode, LanguageMode, OrderMode } from './types';
 import { buildQueue, clampIndex, nextIndex, prevIndex, progressLabel } from './utils/queue';
 import { isImportPayload, loadAppState, mergeDecks, saveAppState } from './utils/storage';
@@ -37,6 +38,8 @@ export default function App() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isFocusMode, setIsFocusMode] = useState(false);
   const slideRef = useRef<HTMLDivElement | null>(null);
+  const frontInputRef = useRef<HTMLInputElement | null>(null);
+  const backInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     saveAppState(state);
@@ -168,11 +171,11 @@ export default function App() {
     setShowAnswer(false);
   };
 
-  const addCard = () => {
-    if (!selectedDeck) return;
+  const addCard = (): boolean => {
+    if (!selectedDeck) return false;
     const front = cardFrontInput.trim();
     const back = cardBackInput.trim();
-    if (!front || !back) return;
+    if (!front || !back) return false;
 
     const card: Card = { id: uid(), front, back };
     updateDecks((decks) =>
@@ -185,6 +188,29 @@ export default function App() {
     setCardFrontInput('');
     setCardBackInput('');
     setStatusMessage('카드가 추가되었습니다.');
+    return true;
+  };
+
+  const handleFrontInputKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    backInputRef.current?.focus();
+  };
+
+  const handleBackInputKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    const added = addCard();
+    if (added) {
+      window.setTimeout(() => frontInputRef.current?.focus(), 0);
+    }
+  };
+
+  const handleAddCardClick = () => {
+    const added = addCard();
+    if (added) {
+      window.setTimeout(() => frontInputRef.current?.focus(), 0);
+    }
   };
 
   const updateCard = (cardId: string, key: 'front' | 'back', value: string) => {
@@ -491,20 +517,24 @@ export default function App() {
         <details className="panel advanced-panel">
           <summary>카드 관리 (Card CRUD)</summary>
           <div className="panel-body">
-            <div className="row wrap">
+            <div className="row quick-add-row">
               <input
+                ref={frontInputRef}
                 placeholder="앞면"
                 value={cardFrontInput}
                 onChange={(event) => setCardFrontInput(event.target.value)}
+                onKeyDown={handleFrontInputKeyDown}
                 disabled={!selectedDeck}
               />
               <input
+                ref={backInputRef}
                 placeholder="뒷면"
                 value={cardBackInput}
                 onChange={(event) => setCardBackInput(event.target.value)}
+                onKeyDown={handleBackInputKeyDown}
                 disabled={!selectedDeck}
               />
-              <button onClick={addCard} disabled={!selectedDeck}>
+              <button onClick={handleAddCardClick} disabled={!selectedDeck}>
                 카드 추가
               </button>
             </div>
